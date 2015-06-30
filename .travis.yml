@@ -16,6 +16,9 @@ before_script:
   # Install PHPCS to validate code standards
   - composer require squizlabs/php_codesniffer 1.5.6
 
+script:
+  - sh -c "if [ '$TRAVIS_PHP_VERSION' != '7.0' ]; then libraries/vendor/bin/phpcs --report=full --extensions=php -p --standard=build/phpcs/Joomla .; fi"
+
+
 notifications:
   hipchat: 1687186@Joomla Catalogue
-
