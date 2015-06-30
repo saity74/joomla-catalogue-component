@@ -19,6 +19,10 @@ before_script:
 script:
   - sh -c "if [ '$TRAVIS_PHP_VERSION' != '7.0' ]; then libraries/vendor/bin/phpcs --report=full --extensions=php -p --standard=build/phpcs/Joomla .; fi"
 
-
 notifications:
-  hipchat: 1687186@Joomla Catalogue
+  hipchat:
+    rooms:
+      - vrERNgF1I1me94q7NJh23WDBMA0sLbau2kARhilq@1687186
+    template:
+      - '%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message}'
+    notify: true
