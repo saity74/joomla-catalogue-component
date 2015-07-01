@@ -47,10 +47,7 @@ abstract class CatalogueHelperCart
 
 				return $items;
 			}
-			else
-				return false;
-		}
-		else
+
 			return false;
 	}
 
