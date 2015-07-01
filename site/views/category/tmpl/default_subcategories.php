@@ -36,7 +36,9 @@ $params = $app->getParams();
 						<span class="price-name">Цена: </span>
                         <span class="item-price"><?php if ($category->min_price && $category->max_price)
 							{
-								echo 'от ' . number_format($category->min_price, 0, '.', ' ') . ' до ' . number_format($category->max_price, 0, '.', ' ') . ' ' . $params->get('catalogue_currency');
+								echo 'от ' . number_format($category->min_price, 0, '.', ' ') . ' до ' . 
+								number_format($category->max_price, 0, '.', ' ') . ' ' . 
+								$params->get('catalogue_currency');
 							}
 							else
 							{
