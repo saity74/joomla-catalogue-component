@@ -7,8 +7,9 @@
     <exclude-pattern type="relative">docs/*</exclude-pattern>
     <exclude-pattern type="relative">tests/*</exclude-pattern>
     <exclude-pattern type="relative">logs/*</exclude-pattern>
-    <exclude-pattern type="relative">*/thumbnail.php</exclude-pattern>
-    <exclude-pattern type="relative">*/script.php</exclude-pattern>
+    <exclude-pattern>administrator/thumbnail.php</exclude-pattern>
+    <exclude-pattern>administrator/script.php</exclude-pattern>
+    <exclude-pattern>script.php</exclude-pattern>
 
     <rule ref="PEAR.Classes.ClassDeclaration"/>
     <rule ref="Squiz.Classes.SelfMemberReference"/>
