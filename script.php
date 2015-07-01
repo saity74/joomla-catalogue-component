@@ -33,7 +33,7 @@ class Com_CatalogueInstallerScript
 			'id' => 0,
 			'parent_id' => 1,
 			'level' => 1,
-			'path' =>'uncategorised',
+			'path' => 'uncategorised',
 			'extension' => 'com_catalogue',
 			'title' => 'Uncategorised',
 			'alias' => 'uncategorised',
