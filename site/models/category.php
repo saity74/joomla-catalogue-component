@@ -269,7 +269,7 @@ class CatalogueModelCategory extends JModelList
 	 *
 	 * @since   1.6
 	 */
-	function &getLeftSibling()
+	public function &getLeftSibling()
 	{
 		if (!is_object($this->_item))
 		{
@@ -286,7 +286,7 @@ class CatalogueModelCategory extends JModelList
 	 *
 	 * @since   1.6
 	 */
-	function &getRightSibling()
+	public function &getRightSibling()
 	{
 		if (!is_object($this->_item))
 		{
