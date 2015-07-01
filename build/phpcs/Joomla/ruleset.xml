@@ -3,9 +3,9 @@
     <description>The Joomla coding standard.</description>
 
     <!-- Exclude folders not containing production code -->
-    <exclude-pattern type="relative">*/build/**/*</exclude-pattern>
-    <exclude-pattern type="relative">*/site/thumbnail.php</exclude-pattern>
-    <exclude-pattern type="relative">*/script.php</exclude-pattern>
+    <exclude-pattern type="relative">build/*</exclude-pattern>
+    <exclude-pattern type="relative">site/thumbnail.php</exclude-pattern>
+    <exclude-pattern type="relative">script.php</exclude-pattern>
 
     <rule ref="PEAR.Classes.ClassDeclaration"/>
     <rule ref="Squiz.Classes.SelfMemberReference"/>
