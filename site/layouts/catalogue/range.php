@@ -3,7 +3,7 @@
  * @package     Joomla.Site
  * @subpackage  com_catalogue
  *
- * @copyright   Copyright (C) 2005 - 2014 Open Source Matters, Inc. All rights reserved.
+ * @copyright   Copyright (C) 2012 - 2015 Saity74, LLC. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 
@@ -16,13 +16,15 @@ $doc->addStyleSheet('components/com_catalogue/assets/css/ion.rangeSlider.skinFla
 $doc->addScript('/components/com_catalogue/assets/js/ion.rangeSlider.min.js');
 
 $app = JFactory::getApplication('Site');
-$jform = $app->getUserState('com_catalogue.category.filter.jform');
+$cid = $app->input->get('cid', 0);
+$jform = $app->getUserState('com_catalogue.category.' . $cid . '.filter.jform');
 
 $from = $displayData->data[0]->from_val;
 $to = $displayData->data[0]->to_val;
 
-if ($jform && isset($jform['filter']) && isset($jform['filter'][$displayData->data[0]->input_name])) {
-    list($from, $to) = explode(';', $jform['filter'][$displayData->data[0]->input_name]);
+if ($jform && isset($jform['filter']) && isset($jform['filter'][$displayData->data[0]->input_name]))
+{
+	list($from, $to) = explode(';', $jform['filter'][$displayData->data[0]->input_name]);
 }
 
 $script = "
@@ -36,7 +38,7 @@ jQuery(document).ready(function(){
             postfix: ' р.',
             maxPostfix: '+',
             prettify: true,
-            step: 50,
+            step: 10,
             hasGrid: true,
             gridMargin: 7,
             onFinish: function(obj) {
@@ -53,12 +55,11 @@ jQuery(document).ready(function(){
 $doc->addScriptDeclaration($script);
 
 ?>
-    <div class="filter-box">
-        <h4 class="filter-label"><?php echo $displayData->dir_name; ?></h4>
+	<div class="filter-box">
+		<h4 class="filter-label"><?php echo $displayData->dir_name; ?></h4>
 
-        <div class="filter_wrap">
-            <input type="text" id="<?php echo $displayData->data[0]->input_name; ?>"
-                   name="jform[filter][<?php echo $displayData->data[0]->input_name; ?>]" value=""/>
-        </div>
-    </div>
-<?php ?>
+		<div class="filter_wrap">
+			<input type="text" id="<?php echo $displayData->data[0]->input_name; ?>"
+				   name="jform[filter][<?php echo $displayData->data[0]->input_name; ?>]" value=""/>
+		</div>
+	</div>

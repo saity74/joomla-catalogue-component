@@ -1,162 +1,80 @@
 <?php
-
-
+/**
+ * @package     Joomla.Administrator
+ * @subpackage  com_catalogue
+ *
+ * @copyright   Copyright (C) 20012 - 2015 Saity74, LLC. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ */
 defined('_JEXEC') or die;
 
 require_once(dirname(__FILE__) . DS . 'helper.php');
 
+/**
+ * Class CatalogueController
+ *
+ * @since  Joomla 1.5
+ */
 class CatalogueController extends JControllerLegacy
 {
-    public function display($cachable = false, $urlparams = array())
-    {
-//        $app = JFactory::getApplication('site');
-//        $sphinx_ids = $app->getUserState('com_catalogue.category.filter.sphinx_ids', array());
-//
-//        if (empty($sphinx_ids)) {
-//            $jinput = JFactory::getApplication()->input;
-//
-//            $sphinx = new SphinxClient();
-//            $sphinx->SetServer("localhost", 3312);
-//            $sphinx->SetSortMode(SPH_SORT_RELEVANCE);
-//            $sphinx->SetMatchMode(SPH_MATCH_EXTENDED);
-//
-//            $sphinx->SetSelect("id");
-//
-//            $sphinx->SetLimits(0, 1000, 1000);
-//
-//            $result = $sphinx->Query('', 'searchIndex');
-//
-//            if ($result === false) {
-//                echo 'Query failed: ' . $sphinx->GetLastError();
-//            }
-//
-//
-//            if (isset($result['matches']) && !empty($result['matches'])) {
-//                $ids = array();
-//
-//                foreach ($result['matches'] as $match) {
-//                    $ids[] = $match['attrs']['id'];
-//
-//                }
-//
-//                if (!empty($ids)) {
-//                    $app->setUserState('com_catalogue.category.filter.sphinx_ids', $ids);
-//                }
-//            }
-//        }
+	/**
+	 * Method to display a search view.
+	 *
+	 * @return  JController		This object to support chaining.
+	 *
+	 * @since   1.5
+	 */
+	public function search()
+	{
+		$sphinx_search_model = $this->getModel('Search', 'CatalogueModel');
+		$result = $sphinx_search_model->getItems();
 
+		$app = JFactory::getApplication('site');
+		$jinput = $app->input;
+		$category_id = $jinput->get('cid');
 
-        parent::display($cachable, $urlparams);
-    }
+		$ids = JArrayHelper::getColumn($result, 'id');
 
-//    public function search()
-//    {
-//
-//        $app = JFactory::getApplication('site');
-//
-//        $jinput = JFactory::getApplication()->input;
-//        $jform = $jinput->post->get('jform', array(), 'array');
-//
-//        $manufacturer_filter = array();
-//        $price_range = '';
-//
-//        $sphinx = new SphinxClient();
-//        $sphinx->SetServer("localhost", 3312);
-//        $sphinx->SetSortMode(SPH_SORT_RELEVANCE);
-//        $sphinx->SetMatchMode(SPH_MATCH_EXTENDED);
-//        $sphinx->SetLimits(0, 1000, 1000);
-//
-//        foreach ($jform['filter'] as $key => $value) {
-//            $key_arr = explode('_', $key);
-//            $count = count($key_arr);
-//
-//            if ($count > 2) {
-//                switch ($key_arr[1]) {
-//                    case 'manufacturer':
-//                        $manufacturer_filter[] = $key_arr[2];
-//                        break;
-//                    case 'price':
-//                        $price_range = $value;
-//                        break;
-//                    case 'listbox' :
-//                        if ($value) $sphinx->setFilter('params.' . $value, array("1"));
-//                        break;
-//                }
-//            } else {
-//                // like where params.attr_N = 1 AND params.attr_M = 1 ...
-//                $sphinx->setFilter('params.' . $key, array($value));
-//            }
-//        }
-//
-//
-//        $sphinx->SetSelect("id");
-//        // like where manufacturer_id IN (array)
-//        $sphinx->setFilter('manufacturer_id', $manufacturer_filter);
-//
-//        if ($price_range && strpos($price_range, ';') !== false) {
-//            list($min, $max) = explode(';', $price_range);
-//            $sphinx->setFilterRange('price', $min, $max);
-//        }
-//
-//
-//        $result = $sphinx->Query('', 'searchIndex');
-//
-//        if ($result === false) {
-//            echo 'Query failed: ' . $sphinx->GetLastError();
-//        }
-//
-//
-//        if (isset($result['matches']) && !empty($result['matches'])) {
-//            $ids = array();
-//
-//            foreach ($result['matches'] as $match) {
-//                $ids[] = $match['attrs']['id'];
-//            }
-//
-//            if (!empty($ids)) {
-//                $app->setUserState('com_catalogue.category.filter.sphinx_ids', $ids);
-//            }
-//        }
-//
-//
-//        $result = array('result' => array('total' => $result['total_found']));
-//
-//        echo json_encode($result);
-//
-//        $app->close();
-//    }
+		$app->setUserState('com_catalogue.category.' . $category_id . '.filter.sphinx_ids', $ids);
 
-    public function addToFavorite()
-    {
-        $app = JFactory::getApplication();
+		/*
+		 * $result = array('result' => array('total' => count($ids)));
+		 * echo json_encode($result);
+		 * $app->close();
+		 */
 
-        $favorite = $app->getUserState('com_catalogue.favorite');
+		$this->display();
+	}
 
-        $order = JRequest::getVar('id', 0, 'get', 'int');
+	/**
+	 * Method to display a view.
+	 *
+	 * @param   boolean  $cachable   If true, the view output will be cached
+	 * @param   array    $urlparams  An array of safe url parameters and their variable types, for valid values see {@link JFilterInput::clean()}.
+	 *
+	 * @return  JController		This object to support chaining.
+	 *
+	 * @since   1.5
+	 */
 
-        if (!CatalogueHelper::isFavorite($order)) {
-            $data = unserialize($favorite);
-            if (!is_array($data)) {
-                $data = array();
-            }
+	public function display($cachable = false, $urlparams = array())
+	{
+		$ids = array();
 
-            array_push($data, $order);
-            $data = array_unique($data);
-            $order = serialize($data);
-            $app->setUserState('com_catalogue.favorite', $order);
+		// $sphinx_search_model = $this->getModel('Search', 'CatalogueModel');
+		// $result = $sphinx_search_model->getItems();
 
-            echo '1';
-        }
+		$app = JFactory::getApplication('site');
+		$jinput = $app->input;
+		$category_id = $jinput->get('cid');
 
-        return false;
-    }
+		// $ids = JArrayHelper::getColumn($result, 'id');
 
-    public function setFilter()
-    {
-        // $app = JFactory::getApplication();
-        // $cur_page = $_SERVER['HTTP_REFERER'];
-        // $app->redirect($cur_page);
-        // header("Location: ".$cur_page);
-        parent::display();
-    }
+		if (!empty($ids))
+		{
+			$app->setUserState('com_catalogue.category.' . $category_id . '.filter.sphinx_ids', $ids);
+		}
+
+		parent::display($cachable, $urlparams);
+	}
 }

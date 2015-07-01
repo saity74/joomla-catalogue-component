@@ -1,39 +1,51 @@
 <?php
-
+/**
+ * @package     Joomla.Administrator
+ * @subpackage  com_catalogue
+ *
+ * @copyright   Copyright (C) 2012 - 2015 Saity74, LLC. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ */
 defined('JPATH_BASE') or die;
 
 JFormHelper::loadFieldClass('list');
 
 require_once __DIR__ . '/../../helpers/catalogue.php';
 
-
+/**
+ * JFormFieldCountriesList
+ * Supports a generic list of options.
+ *
+ * @since  11.1
+ */
 class JFormFieldCountriesList extends JFormFieldList
 {
+	protected static $options = array();
 
-    protected static $options = array();
-    protected $type = 'CountriesList';
+	protected $type = 'CountriesList';
 
-    public function getOptions()
-    {
+	/**
+	 * Method to get the field options.
+	 *
+	 * @return  array  The field option objects.
+	 *
+	 * @since   11.1
+	 */
+	public function getOptions()
+	{
+		$hash = md5($this->element);
 
-        $hash = md5($this->element);
+		if (!isset(static::$options[$hash]))
+		{
+			static::$options[$hash] = parent::getOptions();
 
-        if (!isset(static::$options[$hash])) {
+			/** @noinspection PhpUndefinedClassInspection */
+			$options = CatalogueHelper::getCountriesOptions();
 
+			static::$options[$hash] = array_merge(static::$options[$hash], $options);
+		}
 
-            static::$options[$hash] = parent::getOptions();
+		return static::$options[$hash];
 
-            $options = array();
-
-            $options = CatalogueHelper::getCountriesOptions();
-
-            static::$options[$hash] = array_merge(static::$options[$hash], $options);
-
-
-        }
-
-        return static::$options[$hash];
-
-
-    }
+	}
 }
