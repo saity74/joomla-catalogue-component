@@ -48,7 +48,7 @@ abstract class CatalogueHelperCart
 				return $items;
 			}
 
-			return false;
+		return false;
 	}
 
 	/**
@@ -72,7 +72,7 @@ abstract class CatalogueHelperCart
 		}
 		else
 		{
-			$forms[2];
+			return $forms[2];
 		}
 	}
 
