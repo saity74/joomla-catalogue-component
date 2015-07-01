@@ -1,113 +1,172 @@
-<?php defined('_JEXEC') or die;
+<?php
+/**
+ * @package     Joomla.Administrator
+ * @subpackage  com_catalogue
+ *
+ * @copyright   Copyright (C) 2012 - 2015 Saity74, LLC. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ */
 
-JLoader::register('CatalogueHelper', JPATH_COMPONENT . '/helpers/catalogue.php');
+defined('_JEXEC') or die;
 
+/**
+ * View class for a list of items.
+ *
+ * Class holding methods for displaying presentation data.
+ *
+ * @since  12.2
+ */
 class CatalogueViewCatalogue extends JViewLegacy
 {
-    protected $items;
+	protected $items;
 
-    protected $pagination;
+	protected $pagination;
 
-    protected $state;
+	protected $state;
 
-    public function display($tpl = null)
-    {
-        $this->items = $this->get('Items');
-        $this->pagination = $this->get('Pagination');
-        $this->state = $this->get('State');
-        $this->categories = $this->get('Categories');
+	/**
+	 * Execute and display a template script.
+	 *
+	 * @param   string  $tpl  The name of the template file to parse; automatically searches through the template paths.
+	 *
+	 * @return  mixed  A string if successful, otherwise a Error object.
+	 *
+	 * @see     JViewLegacy::loadTemplate()
+	 * @since   12.2
+	 */
+	public function display($tpl = null)
+	{
+		if ($this->getLayout() !== 'modal')
+		{
+			CatalogueHelper::addSubmenu('catalogue');
+		}
 
-        $this->filterForm = $this->get('FilterForm');
-        $this->activeFilters = $this->get('ActiveFilters');
+		$this->items         = $this->get('Items');
+		$this->pagination    = $this->get('Pagination');
+		$this->state         = $this->get('State');
+		$this->authors       = $this->get('Authors');
+		$this->filterForm    = $this->get('FilterForm');
+		$this->activeFilters = $this->get('ActiveFilters');
 
-        if (count($errors = $this->get('Errors'))) {
-            JError::raiseError(500, implode("\n", $errors));
-            return false;
-        }
+		// Check for errors.
+		if (count($errors = $this->get('Errors')))
+		{
+			JError::raiseError(500, implode("\n", $errors));
 
-        CatalogueHelper::addSubmenu('catalogue');
+			return false;
+		}
 
-        $this->addToolbar();
+		// Levels filter.
+		$options	= array();
+		$options[]	= JHtml::_('select.option', '1', JText::_('J1'));
+		$options[]	= JHtml::_('select.option', '2', JText::_('J2'));
+		$options[]	= JHtml::_('select.option', '3', JText::_('J3'));
+		$options[]	= JHtml::_('select.option', '4', JText::_('J4'));
+		$options[]	= JHtml::_('select.option', '5', JText::_('J5'));
+		$options[]	= JHtml::_('select.option', '6', JText::_('J6'));
+		$options[]	= JHtml::_('select.option', '7', JText::_('J7'));
+		$options[]	= JHtml::_('select.option', '8', JText::_('J8'));
+		$options[]	= JHtml::_('select.option', '9', JText::_('J9'));
+		$options[]	= JHtml::_('select.option', '10', JText::_('J10'));
 
-        $this->sidebar = JHtmlSidebar::render();
+		$this->f_levels = $options;
 
-        parent::display($tpl);
-    }
+		// We don't need toolbar in the modal window.
+		if ($this->getLayout() !== 'modal')
+		{
+			$this->addToolbar();
+			$this->sidebar = JHtmlSidebar::render();
+		}
 
-    protected function addToolbar()
-    {
-        require_once JPATH_COMPONENT . '/helpers/catalogue.php';
+		parent::display($tpl);
+	}
 
-        $user = JFactory::getUser();
+	/**
+	 * Add the page title and toolbar.
+	 *
+	 * @return  void
+	 *
+	 * @since    1.6
+	 */
+	protected function addToolbar()
+	{
+		$canDo = JHelperContent::getActions('com_catalogue', 'category', $this->state->get('filter.category_id'));
+		$user  = JFactory::getUser();
 
-        $canDo = CatalogueHelper::getActions();
+		// Get the toolbar object instance
+		$bar = JToolBar::getInstance('toolbar');
 
-        $bar = JToolBar::getInstance('toolbar');
+		JToolbarHelper::title(JText::_('COM_CONTENT_ITEMS_TITLE'), 'stack item');
 
-        JToolbarHelper::title(JText::_('COM_CATALOGUE_MANAGER'), 'component.png');
-        if ($canDo->get('core.create')) {
-            JToolbarHelper::addNew('item.add');
-        }
+		if ($canDo->get('core.create') || (count($user->getAuthorisedCategories('com_catalogue', 'core.create'))) > 0 )
+		{
+			JToolbarHelper::addNew('item.add');
+		}
 
-        if (($canDo->get('core.edit'))) {
-            JToolbarHelper::editList('item.edit');
-        }
+		if (($canDo->get('core.edit')) || ($canDo->get('core.edit.own')))
+		{
+			JToolbarHelper::editList('item.edit');
+		}
 
-        if ($canDo->get('core.edit.state')) {
-            if ($this->state->get('filter.state') != 2) {
-                JToolbarHelper::publish('item.publish', 'JTOOLBAR_PUBLISH', true);
-                JToolbarHelper::unpublish('item.unpublish', 'JTOOLBAR_UNPUBLISH', true);
-            }
+		if ($canDo->get('core.edit.state'))
+		{
+			JToolbarHelper::publish('catalogue.publish', 'JTOOLBAR_PUBLISH', true);
+			JToolbarHelper::unpublish('catalogue.unpublish', 'JTOOLBAR_UNPUBLISH', true);
+			JToolbarHelper::archiveList('catalogue.archive');
+			JToolbarHelper::checkin('catalogue.checkin');
+		}
 
-            if ($this->state->get('filter.state') != -1) {
-                if ($this->state->get('filter.published') != 2) {
-                    JToolbarHelper::archiveList('item.archive');
-                } elseif ($this->state->get('filter.state') == 2) {
-                    JToolbarHelper::unarchiveList('item.publish');
-                }
-            }
-        }
+		// Add a batch button
+		if ($user->authorise('core.create', 'com_catalogue') && $user->authorise('core.edit', 'com_catalogue') && $user->authorise('core.edit.state', 'com_catalogue'))
+		{
+			JHtml::_('bootstrap.modal', 'collapseModal');
+			$title = JText::_('JTOOLBAR_BATCH');
 
-        if ($canDo->get('core.edit.state')) {
-            JToolbarHelper::checkin('item.checkin');
-        }
+			// Instantiate a new JLayoutFile instance and render the batch button
+			$layout = new JLayoutFile('joomla.toolbar.batch');
 
-        if ($this->state->get('filter.published') == -2 && $canDo->get('core.delete')) {
-            JToolbarHelper::deleteList('', 'catalogue.delete', 'JTOOLBAR_EMPTY_TRASH');
-        } elseif ($canDo->get('core.edit.state')) {
-            JToolbarHelper::trash('catalogue.trash');
-        }
+			$dhtml = $layout->render(array('title' => $title));
+			$bar->appendButton('Custom', $dhtml, 'batch');
+		}
 
+		if ($this->state->get('filter.published') == -2 && $canDo->get('core.delete'))
+		{
+			JToolbarHelper::deleteList('', 'catalogue.delete', 'JTOOLBAR_EMPTY_TRASH');
+		}
+		elseif ($canDo->get('core.edit.state'))
+		{
+			JToolbarHelper::trash('catalogue.trash');
+		}
 
-        if ($canDo->get('core.admin')) {
-            JToolbarHelper::preferences('com_catalogue');
-        }
+		if ($user->authorise('core.admin', 'com_catalogue') || $user->authorise('core.options', 'com_catalogue'))
+		{
+			JToolbarHelper::preferences('com_catalogue');
+		}
 
-        JHtmlSidebar::addFilter(
-            JText::_('JOPTION_SELECT_CATEGORY'),
-            'filter_category_id',
-            JHtml::_('select.options', JHtml::_('category.options', 'com_catalogue'), 'value', 'text', $this->state->get('filter.category_id'))
-        );
+	}
 
-        JHtmlSidebar::addFilter(
-            JText::_('JOPTION_SELECT_MANUFACTURER'),
-            'filter_manufacturer_id',
-            JHtml::_('select.options', CatalogueHelper::getManufacturersOptions(), 'value', 'text', $this->state->get('filter.manufacturer_id'))
-        );
-
-    }
-
-    protected function getSortFields()
-    {
-        return array(
-            'c.item_name' => JText::_('COM_CATALOGUE_HEADING_NAME'),
-            'mf.manufacturer_name' => JText::_('COM_CATALOGUE_HEADING_MANUFACTURER'),
-            'category_title' => JText::_('JCATEGORY'),
-            'c.price' => JText::_('COM_CATALOGUE_HEADING_PRICE'),
-            'c.ordering' => JText::_('JGRID_HEADING_ORDERING'),
-            'c.published' => JText::_('JSTATUS'),
-            'c.id' => JText::_('JGRID_HEADING_ID')
-        );
-    }
+	/**
+	 * Returns an array of fields the table can be sorted by
+	 *
+	 * @return  array  Array containing the field name to sort by as the key and display text as value
+	 *
+	 * @since   3.0
+	 */
+	protected function getSortFields()
+	{
+		return array(
+			'mf.manufacturer_name'  => JText::_('COM_CATALOGUE_HEADING_MANUFACTURER'),
+			'i.price'               => JText::_('COM_CATALOGUE_HEADING_PRICE'),
+			'i.ordering'            => JText::_('JGRID_HEADING_ORDERING'),
+			'i.state'               => JText::_('JSTATUS'),
+			'i.title'               => JText::_('JGLOBAL_TITLE'),
+			'category_title'        => JText::_('JCATEGORY'),
+			'access_level'          => JText::_('JGRID_HEADING_ACCESS'),
+			'i.created_by'          => JText::_('JAUTHOR'),
+			'language'              => JText::_('JGRID_HEADING_LANGUAGE'),
+			'i.created'             => JText::_('JDATE'),
+			'i.id'                  => JText::_('JGRID_HEADING_ID'),
+		);
+	}
 
 }

@@ -16,7 +16,7 @@ defined('JPATH_PLATFORM') or die;
  * @subpackage  Form
  * @since       1.6
  */
-class JFormFieldParamsMedia extends JFormField
+class JFormFieldExtMedia extends JFormField
 {
 	/**
 	 * The initialised state of the document object.
@@ -32,7 +32,7 @@ class JFormFieldParamsMedia extends JFormField
 	 * @var    string
 	 * @since  1.6
 	 */
-	protected $type = 'ParamsMedia';
+	protected $type = 'ExtMedia';
 
 	/**
 	 * The authorField.
@@ -91,11 +91,19 @@ class JFormFieldParamsMedia extends JFormField
 	protected $previewHeight;
 
 	/**
+	 * The descriotion.
+	 *
+	 * @var    string
+	 * @since  3.2
+	 */
+	protected $mediaDesc;
+
+	/**
 	 * Method to get certain otherwise inaccessible properties from the form field object.
 	 *
 	 * @param   string  $name  The property name for which to the the value.
 	 *
-	 * @return  mixed   The property value or null.
+	 * @return  mixed  The property value or null.
 	 *
 	 * @since   3.2
 	 */
@@ -110,6 +118,7 @@ class JFormFieldParamsMedia extends JFormField
 			case 'directory':
 			case 'previewWidth':
 			case 'previewHeight':
+			case 'mediaDesc':
 				return $this->$name;
 		}
 
@@ -134,6 +143,7 @@ class JFormFieldParamsMedia extends JFormField
 			case 'asset':
 			case 'link':
 			case 'preview':
+			case 'mediaDesc':
 			case 'directory':
 				$this->$name = (string) $value;
 				break;
@@ -151,16 +161,17 @@ class JFormFieldParamsMedia extends JFormField
 	/**
 	 * Method to attach a JForm object to the field.
 	 *
-	 * @param   SimpleXMLElement  $element  The SimpleXMLElement object representing the <field /> tag for the form
-	 *                                      field object.
+	 * @param   SimpleXMLElement  $element  The SimpleXMLElement object representing the <field /> tag for the
+	 *                                      form field object.
 	 * @param   mixed             $value    The form field value to validate.
-	 * @param   string            $group    The field name group control value. This acts as as an array container for
-	 *                                      the field. For example if the field has name="foo" and the group value is
+	 * @param   string            $group    The field name group control value. This acts as as an
+	 *                                      array container for the field.
+	 *                                      For example if the field has name="foo" and the group value is
 	 *                                      set to "bar" then the full field name would end up being "bar[foo]".
 	 *
 	 * @return  boolean  True on success.
 	 *
-	 * @see     JFormField::setup()
+	 * @see    JFormField::setup()
 	 * @since   3.2
 	 */
 	public function setup(SimpleXMLElement $element, $value, $group = null)
@@ -178,6 +189,7 @@ class JFormFieldParamsMedia extends JFormField
 			$this->directory = (string) $this->element['directory'];
 			$this->previewWidth = isset($this->element['preview_width']) ? (int) $this->element['preview_width'] : 200;
 			$this->previewHeight = isset($this->element['preview_height']) ? (int) $this->element['preview_height'] : 200;
+			$this->mediaDesc = isset($this->element['mediaDesc']) ? (string) $this->element['mediaDesc'] : '';
 		}
 
 		return $result;
@@ -349,24 +361,17 @@ class JFormFieldParamsMedia extends JFormField
 			}
 		}
 
-		$html[] = '	<input type="text" name="jform[params][attr_image][]" id="' . $this->id . '" value="'
+		$html[] = '	<input type="text" name="jform[item_image_data][src][]" id="' . $this->id . '" value="'
 			. htmlspecialchars($this->value, ENT_COMPAT, 'UTF-8') . '" readonly="readonly"' . $attr . ' />';
 
 		if ($this->value && file_exists(JPATH_ROOT . '/' . $this->value))
 		{
 			$folder = explode('/', $this->value);
-			$folder = array_diff_assoc(
-				$folder,
-				explode('/', JComponentHelper::getParams('com_media')->get('image_path', 'images'))
-			);
+			$folder = array_diff_assoc($folder, explode('/', JComponentHelper::getParams('com_media')->get('image_path', 'images')));
 			array_pop($folder);
 			$folder = implode('/', $folder);
 		}
-		elseif (file_exists(
-			JPATH_ROOT . '/' .
-			JComponentHelper::getParams('com_media')->get('image_path', 'images') .
-			'/' . $this->directory
-		))
+		elseif (file_exists(JPATH_ROOT . '/' . JComponentHelper::getParams('com_media')->get('image_path', 'images') . '/' . $this->directory))
 		{
 			$folder = $this->directory;
 		}
@@ -383,7 +388,8 @@ class JFormFieldParamsMedia extends JFormField
 			$html[] = '<a class="modal btn" title="' . JText::_('JLIB_FORM_BUTTON_SELECT') . '" href="'
 				. ($this->readonly ? ''
 					: ($this->link ? $this->link
-						: 'index.php?option=com_media&amp;view=images&amp;tmpl=component&amp;asset=' . $asset . '&amp;author='
+						: 'index.php?option=com_media&amp;view=images&amp;tmpl=component&amp;asset=' .
+						$asset . '&amp;author='
 						. $this->form->getValue($this->authorField)) . '&amp;fieldid=' . $this->id .
 					'&amp;folder=' . $folder) . '"'
 				. ' rel="{handler: \'iframe\', size: {x: 800, y: 500}}">';
@@ -396,6 +402,9 @@ class JFormFieldParamsMedia extends JFormField
 		}
 
 		$html[] = '</div>';
+
+		$html[] = '	<input type="text" name="jform[item_image_data][desc][]" value="' .
+			htmlspecialchars($this->mediaDesc, ENT_COMPAT, 'UTF-8') . '" />';
 
 		return implode("\n", $html);
 	}

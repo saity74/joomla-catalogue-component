@@ -17,12 +17,13 @@ class com_catalogueInstallerScript
         // Create categories for our component
         $basePath = JPATH_ADMINISTRATOR . '/components/com_categories';
         require_once $basePath . '/models/category.php';
-        $config = array('table_path' => $basePath . '/tables');
+        $config = array( 'table_path' => $basePath . '/tables');
         $model = new CategoriesModelCategory($config);
-        $data = array('id' => 0, 'parent_id' => 1, 'level' => 1, 'path' => 'uncategorised', 'extension' => 'com_catalogue', 'title' => 'Uncategorised', 'alias' => 'uncategorised', 'published' => 1, 'language' => '*');
+        $data = array( 'id' => 0, 'parent_id' => 1, 'level' => 1, 'path' => 'uncategorised', 'extension' => 'com_catalogue' , 'title' => 'Uncategorised', 'alias' => 'uncategorised', 'published' => 1, 'language' => '*');
         $status = $model->save($data);
 
-        if (!$status) {
+        if(!$status)
+        {
             JError::raiseWarning(500, JText::_('Unable to create default content category!'));
         }
     }

@@ -1,89 +1,111 @@
 <?php
 /**
  * @package     Joomla.Administrator
- * @subpackage  com_banners
+ * @subpackage  com_catalogue
  *
- * @copyright   Copyright (C) 2005 - 2012 Open Source Matters, Inc. All rights reserved.
+ * @copyright   Copyright (C) 2012 - 2015 Saity74, LLC. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
-
 defined('_JEXEC') or die;
 
 JLoader::register('CatalogueHelper', JPATH_COMPONENT . '/helpers/catalogue.php');
 
 /**
- * View to edit a banner.
+ * CatalogueViewCountry View
  *
- * @package     Joomla.Administrator
- * @subpackage  com_banners
- * @since       1.5
+ * Class holding methods for displaying presentation data.
+ *
+ * @since  12.2
  */
 class CatalogueViewCountry extends JViewLegacy
 {
-    protected $form;
-    protected $item;
-    protected $state;
+	protected $form;
 
-    /**
-     * Display the view
-     */
-    public function display($tpl = null)
-    {
+	protected $item;
 
-        // Initialiase variables.
-        $this->form = $this->get('Form');
-        $this->item = $this->get('Item');
-        $this->state = $this->get('State');
+	protected $state;
 
-        // Check for errors.
-        if (count($errors = $this->get('Errors'))) {
-            JError::raiseError(500, implode("\n", $errors));
-            return false;
-        }
+	/**
+	 * Execute and display a template script.
+	 *
+	 * @param   string  $tpl  The name of the template file to parse; automatically searches through the template paths.
+	 *
+	 * @return  mixed  A string if successful, otherwise a Error object.
+	 *
+	 * @see     JViewLegacy::loadTemplate()
+	 * @since   12.2
+	 */
+	public function display($tpl = null)
+	{
+		// Initialiase variables.
+		$this->form = $this->get('Form');
+		$this->item = $this->get('Item');
+		$this->state = $this->get('State');
 
-        $this->addToolbar();
-        parent::display($tpl);
-    }
+		// Check for errors.
+		if (count($errors = $this->get('Errors')))
+		{
+			JError::raiseError(500, implode("\n", $errors));
 
-    /**
-     * Add the page title and toolbar.
-     *
-     * @since    1.6
-     */
-    protected function addToolbar()
-    {
-        JFactory::getApplication()->input->set('hidemainmenu', true);
+			return false;
+		}
 
-        $user = JFactory::getUser();
-        $userId = $user->get('id');
-        $isNew = ($this->item->id == 0);
-        $checkedOut = !($this->item->checked_out == 0 || $this->item->checked_out == $userId);
-        // Since we don't track these assets at the item level, use the category id.
-        $canDo = CatalogueHelper::getActions($this->item->id, 0);
+		$this->addToolbar();
 
-        JToolbarHelper::title($isNew ? JText::_('COM_CATALOGUE_MANAGER_COUNTRY_NEW') : JText::_('COM_CATALOGUE_MANAGER_COUNTRY_EDIT'));
+		parent::display($tpl);
 
-        // If not checked out, can save the item.
-        if (!$checkedOut && ($canDo->get('core.edit'))) {
-            JToolbarHelper::apply('country.apply');
-            JToolbarHelper::save('country.save');
+		return true;
+	}
 
-            if ($canDo->get('core.create')) {
-                JToolbarHelper::save2new('country.save2new');
-            }
-        }
+	/**
+	 * Add the page title and toolbar.
+	 *
+	 * @return  void
+	 *
+	 * @since    1.6
+	 */
+	protected function addToolbar()
+	{
+		JFactory::getApplication()->input->set('hidemainmenu', true);
 
-        // If an existing item, can save to a copy.
-        if (!$isNew && $canDo->get('core.create')) {
-            JToolbarHelper::save2copy('country.save2copy');
-        }
+		$user = JFactory::getUser();
+		$userId = $user->get('id');
+		$isNew = ($this->item->id == 0);
+		$checkedOut = !($this->item->checked_out == 0 || $this->item->checked_out == $userId);
 
-        if (empty($this->item->id)) {
-            JToolbarHelper::cancel('country.cancel');
-        } else {
-            JToolbarHelper::cancel('country.cancel', 'JTOOLBAR_CLOSE');
-        }
+		// Since we don't track these assets at the item level, use the category id.
+		/** @noinspection PhpUndefinedClassInspection */
+		$canDo = CatalogueHelper::getActions($this->item->id, 0);
 
-        JToolbarHelper::divider();
-    }
+		JToolbarHelper::title($isNew ? JText::_('COM_CATALOGUE_MANAGER_COUNTRY_NEW') : JText::_('COM_CATALOGUE_MANAGER_COUNTRY_EDIT'));
+
+		// If not checked out, can save the item.
+		if (!$checkedOut && ($canDo->get('core.edit')))
+		{
+			JToolbarHelper::apply('country.apply');
+			JToolbarHelper::save('country.save');
+
+			if ($canDo->get('core.create'))
+			{
+				JToolbarHelper::save2new('country.save2new');
+			}
+		}
+
+		// If an existing item, can save to a copy.
+		if (!$isNew && $canDo->get('core.create'))
+		{
+			JToolbarHelper::save2copy('country.save2copy');
+		}
+
+		if (empty($this->item->id))
+		{
+			JToolbarHelper::cancel('country.cancel');
+		}
+		else
+		{
+			JToolbarHelper::cancel('country.cancel', 'JTOOLBAR_CLOSE');
+		}
+
+		JToolbarHelper::divider();
+	}
 }

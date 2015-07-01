@@ -1,86 +1,131 @@
 <?php
-
-
+/**
+ * @package     Joomla.Administrator
+ * @subpackage  com_catalogue
+ *
+ * @copyright   Copyright (C) 2012 - 2015 Saity74, LLC. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ */
 defined('_JEXEC') or die;
 
 JLoader::register('CatalogueHelper', JPATH_COMPONENT . '/helpers/catalogue.php');
 
-
+/**
+ * CatalogueViewAttrs View
+ *
+ * Class holding methods for displaying presentation data.
+ *
+ * @since  12.2
+ */
 class CatalogueViewAttrs extends JViewLegacy
 {
 
-    protected $items;
-    protected $pagination;
-    protected $state;
+	protected $items;
 
-    public function display($tpl = null)
-    {
-        $this->items = $this->get('Items');
-        $this->pagination = $this->get('Pagination');
-        $this->state = $this->get('State');
+	protected $pagination;
 
-        // Check for errors.
-        if (count($errors = $this->get('Errors'))) {
-            JError::raiseError(500, implode("\n", $errors));
-            return false;
-        }
+	protected $state;
 
-        CatalogueHelper::addSubmenu('attrs');
+	/**
+	 * Execute and display a template script.
+	 *
+	 * @param   string  $tpl  The name of the template file to parse; automatically searches through the template paths.
+	 *
+	 * @return  mixed  A string if successful, otherwise a Error object.
+	 *
+	 * @see     JViewLegacy::loadTemplate()
+	 * @since   12.2
+	 */
+	public function display($tpl = null)
+	{
+		$this->items = $this->get('Items');
+		$this->pagination = $this->get('Pagination');
+		$this->state = $this->get('State');
 
-        $this->addToolbar();
+		// Check for errors.
+		if (count($errors = $this->get('Errors')))
+		{
+			JError::raiseError(500, implode("\n", $errors));
 
+			return false;
+		}
 
-        $this->sidebar = JHtmlSidebar::render();
-        parent::display($tpl);
-    }
+		/** @noinspection PhpUndefinedClassInspection */
+		CatalogueHelper::addSubmenu('attrs');
 
-    protected function addToolbar()
-    {
-        require_once JPATH_COMPONENT . '/helpers/catalogue.php';
+		$this->addToolbar();
 
-        $canDo = CatalogueHelper::getActions($this->state->get('filter.attr_id'));
+		$this->sidebar = JHtmlSidebar::render();
 
-        $bar = JToolBar::getInstance('toolbar');
+		parent::display($tpl);
 
-        JToolbarHelper::title(JText::_('COM_MANUFACTURER_MANAGER'), 'component.png');
-        if ($canDo->get('core.create')) {
-            JToolbarHelper::addNew('attr.add');
-        }
+		return true;
+	}
 
-        if (($canDo->get('core.edit'))) {
-            JToolbarHelper::editList('attr.edit');
-        }
+	/**
+	 * Add the page title and toolbar.
+	 *
+	 * @return  void
+	 *
+	 * @since    1.6
+	 */
+	protected function addToolbar()
+	{
+		/** @noinspection PhpIncludeInspection */
+		require_once JPATH_COMPONENT . '/helpers/catalogue.php';
 
-        if ($this->state->get('filter.published') == -2 && $canDo->get('core.delete')) {
-            JToolbarHelper::deleteList('', 'attrs.delete', 'JTOOLBAR_EMPTY_TRASH');
-        } elseif ($canDo->get('core.edit.state')) {
-            JToolbarHelper::trash('attrs.trash');
-        }
+		$canDo = CatalogueHelper::getActions($this->state->get('filter.attr_id'));
 
-        JHtmlSidebar::setAction('index.php?option=com_catalogue&view=manfacturers');
+		JToolbarHelper::title(JText::_('COM_MANUFACTURER_MANAGER'), 'component.png');
+		if ($canDo->get('core.create'))
+		{
+			JToolbarHelper::addNew('attr.add');
+		}
 
-        JHtmlSidebar::addFilter(
-            JText::_('JOPTION_SELECT_PUBLISHED'),
-            'filter_published',
-            JHtml::_('select.options', JHtml::_('jgrid.publishedOptions'), 'value', 'text', $this->state->get('filter.published'), true)
-        );
+		if (($canDo->get('core.edit')))
+		{
+			JToolbarHelper::editList('attr.edit');
+		}
 
-        JHtmlSidebar::addFilter(
-            JText::_('JOPTION_SELECT_ATTRDIR'),
-            'filter_attrdir_id',
-            JHtml::_('select.options', CatalogueHelper::getAttrDirsOptions(), 'value', 'text', $this->state->get('filter.attrdir_id'))
-        );
+		if ($this->state->get('filter.published') == -2 && $canDo->get('core.delete'))
+		{
+			JToolbarHelper::deleteList('', 'attrs.delete', 'JTOOLBAR_EMPTY_TRASH');
+		}
+		elseif ($canDo->get('core.edit.state'))
+		{
+			JToolbarHelper::trash('attrs.trash');
+		}
 
+		JHtmlSidebar::setAction('index.php?option=com_catalogue&view=manfacturers');
 
-    }
+		JHtmlSidebar::addFilter(
+			JText::_('JOPTION_SELECT_PUBLISHED'),
+			'filter_published',
+			JHtml::_('select.options', JHtml::_('jgrid.publishedOptions'), 'value', 'text', $this->state->get('filter.published'), true)
+		);
 
-    protected function getSortFields()
-    {
-        return array(
-            'a.attr_name' => JText::_('COM_CATALOGUE_ATTR_NAME'),
-            'a.attr_type' => JText::_('COM_CATALOGUE_ATTR_TYPE'),
-            'a.ordering' => JText::_('JGRID_HEADING_ORDERING'),
-            'a.id' => JText::_('JGRID_HEADING_ID')
-        );
-    }
+		JHtmlSidebar::addFilter(
+			JText::_('JOPTION_SELECT_ATTRDIR'),
+			'filter_attrdir_id',
+			JHtml::_('select.options', CatalogueHelper::getAttrDirsOptions(), 'value', 'text', $this->state->get('filter.attrdir_id'))
+		);
+
+	}
+
+	/**
+	 * Returns an array of fields the table can be sorted by
+	 *
+	 * @return  array  Array containing the field name to sort by as the key and display text as value
+	 *
+	 * @since   3.0
+	 */
+	protected function getSortFields()
+	{
+		return array(
+			'a.attr_name' => JText::_('COM_CATALOGUE_ATTR_NAME'),
+			'a.attr_type' => JText::_('COM_CATALOGUE_ATTR_TYPE'),
+			'a.ordering' => JText::_('JGRID_HEADING_ORDERING'),
+			'a.id' => JText::_('JGRID_HEADING_ID')
+		);
+	}
 }

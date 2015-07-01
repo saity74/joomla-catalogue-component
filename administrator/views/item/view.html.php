@@ -1,90 +1,139 @@
 <?php
 /**
- * @package     Joomla.Administrator
- * @subpackage  com_banners
+ * @package     Saity74.Administrator
+ * @subpackage  com_catalogue
  *
- * @copyright   Copyright (C) 2005 - 2012 Open Source Matters, Inc. All rights reserved.
+ * @copyright   Copyright (C) 2015 Saity74 LLC. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 defined('_JEXEC') or die;
 
-JLoader::register('CatalogueHelper', JPATH_COMPONENT . '/helpers/catalogue.php');
-
 /**
- * View to edit a banner.
+ * View to edit an item.
  *
- * @package     Joomla.Administrator
- * @subpackage  com_banners
- * @since       1.5
+ * @since  3.0
  */
 class CatalogueViewItem extends JViewLegacy
 {
-    protected $form;
-    protected $item;
-    protected $state;
-    protected $pagination;
+	protected $form;
 
-    /**
-     * Display the view
-     */
-    public function display($tpl = null)
-    {
+	protected $item;
 
-        // Initialiase variables.
-        $this->form = $this->get('Form');
-        $this->item = $this->get('Item');
-        $this->state = $this->get('State');
-        $this->pagination = $this->get('Pagination');
+	protected $state;
 
-        // Check for errors.
-        if (count($errors = $this->get('Errors'))) {
-            JError::raiseError(500, implode("\n", $errors));
-            return false;
-        }
+	/**
+	 * Execute and display a template script.
+	 *
+	 * @param   string  $tpl  The name of the template file to parse; automatically searches through the template paths.
+	 *
+	 * @return  mixed  A string if successful, otherwise a Error object.
+	 *
+	 * @since   1.6
+	 */
+	public function display($tpl = null)
+	{
+		JFactory::getLanguage()->load('com_content', JPATH_ADMINISTRATOR);
 
-        $this->addToolbar();
-        parent::display($tpl);
-    }
+		if ($this->getLayout() == 'pagebreak')
+		{
+			// TODO: This is really dogy - should change this one day.
+			$input = JFactory::getApplication()->input;
+			$eName = $input->getCmd('e_name');
+			$eName    = preg_replace('#[^A-Z0-9\-\_\[\]]#i', '', $eName);
+			$document = JFactory::getDocument();
+			$document->setTitle(JText::_('COM_CATALOGUE_PAGEBREAK_DOC_TITLE'));
+			$this->eName = &$eName;
+			parent::display($tpl);
+			return;
+		}
 
-    /**
-     * Add the page title and toolbar.
-     *
-     * @since    1.6
-     */
-    protected function addToolbar()
-    {
-        JFactory::getApplication()->input->set('hidemainmenu', true);
+		$this->form     = $this->get('Form');
+		$this->item     = $this->get('Item');
+		$this->state    = $this->get('State');
+		$this->canDo    = JHelperContent::getActions('com_catalogue', 'item', $this->item->id);
 
-        $user = JFactory::getUser();
-        $userId = $user->get('id');
-        $isNew = ($this->item->id == 0);
-        $checkedOut = !($this->item->checked_out == 0 || $this->item->checked_out == $userId);
-        // Since we don't track these assets at the item level, use the category id.
-        $canDo = CatalogueHelper::getActions($this->item->id, 0);
+		// Check for errors.
+		if (count($errors = $this->get('Errors')))
+		{
+			JError::raiseError(500, implode("\n", $errors));
+			return false;
+		}
 
-        JToolbarHelper::title($isNew ? JText::_('COM_CATALOGUE_MANAGER_ITEM_NEW') : JText::_('COM_CATALOGUE_MANAGER_ITEM_EDIT'), 'banners.png');
+		if ($this->getLayout() == 'modal')
+		{
+			$this->form->setFieldAttribute('language', 'readonly', 'true');
+			$this->form->setFieldAttribute('catid', 'readonly', 'true');
+		}
 
-        // If not checked out, can save the item.
-        if (!$checkedOut && ($canDo->get('core.edit'))) {
-            JToolbarHelper::apply('item.apply');
-            JToolbarHelper::save('item.save');
+		$this->addToolbar();
+		parent::display($tpl);
+	}
 
-            if ($canDo->get('core.create')) {
-                JToolbarHelper::save2new('item.save2new');
-            }
-        }
+	/**
+	 * Add the page title and toolbar.
+	 *
+	 * @return  void
+	 *
+	 * @since   1.6
+	 */
+	protected function addToolbar()
+	{
+		JFactory::getApplication()->input->set('hidemainmenu', true);
+		$user       = JFactory::getUser();
+		$userId     = $user->get('id');
+		$isNew      = ($this->item->id == 0);
+		$checkedOut = !($this->item->checked_out == 0 || $this->item->checked_out == $userId);
 
-        // If an existing item, can save to a copy.
-        if (!$isNew && $canDo->get('core.create')) {
-            JToolbarHelper::save2copy('item.save2copy');
-        }
+		// Built the actions for new and existing records.
+		$canDo      = $this->canDo;
+		JToolbarHelper::title(
+			JText::_('COM_CATALOGUE_PAGE_' . ($checkedOut ? 'VIEW_ITEM' : ($isNew ? 'ADD_ITEM' : 'EDIT_ITEM'))),
+			'pencil-2 item-add'
+		);
 
-        if (empty($this->item->id)) {
-            JToolbarHelper::cancel('item.cancel');
-        } else {
-            JToolbarHelper::cancel('item.cancel', 'JTOOLBAR_CLOSE');
-        }
+		// For new records, check the create permission.
+		if ($isNew && (count($user->getAuthorisedCategories('com_catalogue', 'core.create')) > 0))
+		{
+			JToolbarHelper::apply('item.apply');
+			JToolbarHelper::save('item.save');
+			JToolbarHelper::save2new('item.save2new');
+			JToolbarHelper::cancel('item.cancel');
+		}
+		else
+		{
+			// Can't save the record if it's checked out.
+			if (!$checkedOut)
+			{
+				// Since it's an existing record, check the edit permission, or fall back to edit own if the owner.
+				if ($canDo->get('core.edit') || ($canDo->get('core.edit.own') && $this->item->created_by == $userId))
+				{
+					JToolbarHelper::apply('item.apply');
+					JToolbarHelper::save('item.save');
 
-    }
+					// We can save this record, but check the create permission to see if we can return to make a new one.
+					if ($canDo->get('core.create'))
+					{
+						JToolbarHelper::save2new('item.save2new');
+					}
+				}
+			}
+
+			// If checked out, we can still save
+			if ($canDo->get('core.create'))
+			{
+				JToolbarHelper::save2copy('item.save2copy');
+			}
+
+			if ($this->state->params->get('save_history', 0) && $canDo->get('core.edit'))
+			{
+				JToolbarHelper::versions('com_catalogue.item', $this->item->id);
+			}
+
+			JToolbarHelper::cancel('item.cancel', 'JTOOLBAR_CLOSE');
+		}
+
+		JToolbarHelper::divider();
+		JToolbarHelper::help('JHELP_CONTENT_ITEM_MANAGER_EDIT');
+	}
 }
