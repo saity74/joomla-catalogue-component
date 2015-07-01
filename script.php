@@ -3,7 +3,7 @@
  * @package     Joomla.Administrator
  * @subpackage  com_catalogue
  *
- * @copyright   Copyright (C) 20012 - 2015 Saity74, LLC. All rights reserved.
+ * @copyright   Copyright (C) 2012 - 2015 Saity74, LLC. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 defined('_JEXEC') or die('Restricted access');
@@ -11,7 +11,7 @@ defined('_JEXEC') or die('Restricted access');
 /**
  * Class Com_CatalogueInstallerScript
  *
- * @since   1.5
+ * @since  1.5
  */
 class Com_CatalogueInstallerScript
 {
@@ -20,7 +20,7 @@ class Com_CatalogueInstallerScript
 	 *
 	 * @return  void
 	 */
-	function install()
+	public function install()
 	{
 		// Create categories for our component
 		$basePath = JPATH_ADMINISTRATOR . '/components/com_categories';
@@ -53,7 +53,7 @@ class Com_CatalogueInstallerScript
 	 *
 	 * @return  void
 	 */
-	function uninstall()
+	public function uninstall()
 	{
 		echo '<p>' . JText::_('COM_CATALOGUE_UNINSTALL_TEXT') . '</p>';
 	}
@@ -65,7 +65,7 @@ class Com_CatalogueInstallerScript
 	 *
 	 * @return  void
 	 */
-	function update($parent)
+	public function update($parent)
 	{
 		echo '<p>' . JText::sprintf('COM_CATALOGUE_UPDATE_TEXT', $parent->get('manifest')->version) . '</p>';
 	}
