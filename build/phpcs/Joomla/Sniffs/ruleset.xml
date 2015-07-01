@@ -34,7 +34,7 @@
     <rule ref="Squiz.Operators.IncrementDecrementUsage"/>
     <rule ref="Squiz.Scope.StaticThisUsage"/>
     <rule ref="Squiz.WhiteSpace.ScopeClosingBrace">
-        <exclude-pattern type="relative">*/layouts/*</exclude-pattern>
+        <exclude-pattern type="relative">*/layouts/**/*</exclude-pattern>
         <exclude-pattern type="relative">*/tmpl/*</exclude-pattern>
     </rule>
 
@@ -66,7 +66,7 @@
     <rule ref="Joomla.Commenting.ClassComment"/>
     <rule ref="Joomla.WhiteSpace.ConcatenationSpacing"/>
     <rule ref="Joomla.ControlStructures.ControlSignature">
-        <exclude-pattern type="relative">*/layouts/*</exclude-pattern>
+        <exclude-pattern type="relative">*/layouts/**/*</exclude-pattern>
         <exclude-pattern type="relative">*/tmpl/*</exclude-pattern>
     </rule>
     <rule ref="Joomla.ControlStructures.InlineControlStructure"/>
