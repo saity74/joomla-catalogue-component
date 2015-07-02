@@ -30,7 +30,6 @@
         <files folder="administrator">
             <filename>access.xml</filename>
             <filename>catalogue.php</filename>
-            <filename>com_catalogue.xml</filename>
             <filename>config.xml</filename>
             <filename>controller.php</filename>
             <filename>index.html</filename>
