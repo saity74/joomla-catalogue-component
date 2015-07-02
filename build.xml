@@ -145,5 +145,5 @@
         </zip>
     </target>
 
-    <target name="build" description="build component" depends="clean, init, copyFiles, phpCodeSniff, phpmd, zippa"/>
+    <target name="build" description="build component" depends="clean, init, copyFiles, phpCodeSniff, phpmd, migrate, zippa"/>
 </project>
