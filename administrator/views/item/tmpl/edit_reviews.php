@@ -36,7 +36,8 @@
 					$name = 'jform[_reviews_][review_date][]',
 					$id = 'review_input_date',
 					$format = '%Y-%m-%d',
-					$attribs = array('size' => '8', 'maxlength' => '10','class' => ' validate[\'required\']',)); ?>
+					$attribs = array('size' => '8', 'maxlength' => '10','class' => ' validate[\'required\']')
+				); ?>
 			</div>
 		</div>
 		<div class="control-group">
