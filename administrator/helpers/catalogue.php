@@ -105,9 +105,9 @@ class CatalogueHelper
 		$db = JFactory::getDbo();
 		$query = $db->getQuery(true);
 
-		$query->select('id As value, item_name As text');
+		$query->select('id As value, title As text');
 		$query->from('#__catalogue_item AS i');
-		$query->order('i.item_name');
+		$query->order('i.title');
 
 		// Get the options.
 		$db->setQuery($query);

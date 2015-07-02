@@ -1,9 +1,10 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: shance
- * Date: 02.07.15
- * Time: 4:19
+ * @package     Joomla.Administrator
+ * @subpackage  com_catalogue
+ *
+ * @copyright   Copyright (C) 2012 - 2015 Saity74, LLC. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 ?>
 <div class="row-fluid form-horizontal-desktop tabs-left">

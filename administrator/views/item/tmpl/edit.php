@@ -72,12 +72,12 @@ $doc->addScriptDeclaration('
         }
     };
 ');
-//$doc->addScript('/administrator/components/com_catalogue/assets/js/tablednd.js');
-//$doc->addScriptDeclaration('jQuery(function ($) { $("#techsTable").tableDnD() });');
+$doc->addScript(JPATH_COMPONENT . '/assets/js/tablednd.js');
+$doc->addScriptDeclaration('jQuery(function ($) { $("#techsTable").tableDnD() });');
 
 ?>
 
-<form action="<?php echo JRoute::_('index.php?option=com_catalogue&layout=edit&id=' . (int)$this->item->id); ?>"
+<form action="<?php echo JRoute::_('index.php?option=com_catalogue&layout=edit&id=' . (int) $this->item->id); ?>"
       method="post" name="adminForm" id="item-form" class="form-validate">
 	<?php echo JLayoutHelper::render('joomla.edit.title_alias', $this); ?>
 	<div class="form-horizontal">

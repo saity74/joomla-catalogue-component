@@ -258,9 +258,9 @@ class CatalogueModelItem extends JModelAdmin
 			$registry->loadString($item->metadata);
 			$item->metadata = $registry->toArray();
 
-//			$image_data = new JRegistry;
-//			$image_data->loadString($item->item_image_data);
-//			$item->image_data = $image_data->toArray();
+			// $image_data = new JRegistry;
+			// $image_data->loadString($item->item_image_data);
+			// $item->image_data = $image_data->toArray();
 
 			$techs = new JRegistry;
 			$techs->loadString($item->techs);
@@ -788,7 +788,7 @@ class CatalogueModelItem extends JModelAdmin
 	protected function cleanCache($group = null, $client_id = 0)
 	{
 		parent::cleanCache('com_content');
-		//parent::cleanCache('mod_catalogue_hotitems');
+		// parent::cleanCache('mod_catalogue_hotitems');
 	}
 
 	/**

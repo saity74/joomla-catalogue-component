@@ -117,7 +117,9 @@ class CatalogueViewCatalogue extends JViewLegacy
 		}
 
 		// Add a batch button
-		if ($user->authorise('core.create', 'com_catalogue') && $user->authorise('core.edit', 'com_catalogue') && $user->authorise('core.edit.state', 'com_catalogue'))
+		if ($user->authorise('core.create', 'com_catalogue') &&
+			$user->authorise('core.edit', 'com_catalogue') &&
+			$user->authorise('core.edit.state', 'com_catalogue'))
 		{
 			JHtml::_('bootstrap.modal', 'collapseModal');
 			$title = JText::_('JTOOLBAR_BATCH');

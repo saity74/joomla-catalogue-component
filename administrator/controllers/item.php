@@ -14,7 +14,7 @@ defined('_JEXEC') or die;
  *
  * @package     Joomla.Administrator
  * @subpackage  com_catalogue
- * @since  12.2
+ * @since       12.2
  */
 class CatalogueControllerItem extends JControllerForm
 {

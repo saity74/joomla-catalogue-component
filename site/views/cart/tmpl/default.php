@@ -104,18 +104,12 @@ $items_count = 0;
 							   value="" name="email"/>
 					</div>
 					<div class="controlls">
-                        <textarea 
-				title="Подробный адрес доставки" 
-				placeholder="Подробный адрес доставки" 
-				class="field" 
-				name="address"></textarea>
+                        <textarea title="Подробный адрес доставки" placeholder="Подробный адрес доставки" class="field"
+								  name="address"></textarea>
 					</div>
 					<div class="controlls">
-                        <textarea 
-				title="Пожелания по доставке" 
-				placeholder="Пожелания по доставке" 
-				class="field"
-				name="desc"></textarea>
+                        <textarea title="Пожелания по доставке" placeholder="Пожелания по доставке" class="field"
+								  name="desc"></textarea>
 					</div>
 				</div>
 				<div>
