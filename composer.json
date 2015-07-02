@@ -15,7 +15,8 @@
         "joomla/registry": "~1.2",
         "joomla/string": "~1.2",
         "joomla/uri": "~1.1",
-        "symfony/yaml": "2.*"
+        "symfony/yaml": "2.*",
+        "phpmd/phpmd" : "@stable"
     },
     "require-dev": {
         "phpunit/phpunit": "4.1.*"

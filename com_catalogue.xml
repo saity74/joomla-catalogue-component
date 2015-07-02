@@ -13,11 +13,13 @@
     <install>
         <sql>
             <file driver="mysql" charset="utf8">sql/install.mysql.utf8.sql</file>
+            <file driver="mysqli" charset="utf8">sql/install.mysql.utf8.sql</file>
         </sql>
     </install>
     <uninstall>
         <sql>
             <file driver="mysql" charset="utf8">sql/uninstall.mysql.utf8.sql</file>
+            <file driver="mysqli" charset="utf8">sql/uninstall.mysql.utf8.sql</file>
         </sql>
     </uninstall>
     <administration>
@@ -26,15 +28,14 @@
             <menu link="option=com_catalogue" img="class:catalogue" alt="Catalogue/Catalogue">com_catalogue</menu>
             <menu link="option=com_categories&amp;extension=com_catalogue" view="categories" img="class:catalogue-cat" alt="Catalogue/Categories">com_catalogue_categories</menu>
         </submenu>
-
         <files folder="administrator">
+            <filename>../com_catalogue.xml</filename>
+            <filename>../script.php</filename>
             <filename>access.xml</filename>
             <filename>catalogue.php</filename>
-            <filename>com_catalogue.xml</filename>
             <filename>config.xml</filename>
             <filename>controller.php</filename>
             <filename>index.html</filename>
-            <filename>script.php</filename>
             <folder>assets</folder>
             <folder>controllers</folder>
             <folder>helpers</folder>
