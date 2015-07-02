@@ -1,163 +1,127 @@
 <?php
+/**
+ * @package     Joomla.Administrator
+ * @subpackage  com_catalogue
+ *
+ * @copyright   Copyright (C) 20012 - 2015 Saity74, LLC. All rights reserved.
+ * @license     GNU General Public License version 2 or later; see LICENSE.txt
+ */
 defined('_JEXEC') or die;
 
 require_once('thumbnail.php');
 
+/**
+ * Class CatalogueHelper
+ *
+ * @since  1.5
+ */
 class CatalogueHelper
 {
 
-    static function getWatchListItems()
-    {
-        $app = JFactory::getApplication();
-        $data = $app->getUserState('com_catalogue.watchlist');
-        if ($data) {
-            $watchlist = unserialize($data);
-            $watchlist = array_filter($watchlist);
-            if (!empty($watchlist)) {
-                $db = JFactory::getDbo();
-                $query = $db->getQuery(true);
+	/**
+	 * Method to get items by array of ID's
+	 *
+	 * @param   array  $ids  Array of ID's
+	 *
+	 * @return  mixed
+	 */
+	public static function getItemsByIds($ids)
+	{
+		$db = JFactory::getDbo();
+		$query = $db->getQuery(true);
 
-                $query->select('*');
-                $query->from('#__catalogue_item');
+		$query->select('*');
+		$query->from('#__catalogue_items');
+		$query->where('id IN (' . implode(',', $ids) . ')');
 
-                $query->where('id IN (' . implode(',', $watchlist) . ')');
-                $query->order('FIELD(id, ' . implode(',', $watchlist) . ')');
+		$db->setQuery($query);
+		$items = $db->loadObjectList();
 
-                $db->setQuery($query, 1, 8);
-                $items = $db->loadObjectList();
-            }
-            return $items;
-        }
+		return $items;
+	}
 
-        return false;
-    }
+	/**
+	 * Method to get items by ID
+	 *
+	 * @param   int  $id  Catalogue item ID
+	 *
+	 * @return  mixed
+	 */
+	public static function getItemById($id)
+	{
+		$db = JFactory::getDbo();
+		$query = $db->getQuery(true);
 
-    static function getFavoriteItems()
-    {
-        $app = JFactory::getApplication();
-        $data = $app->getUserState('com_catalogue.favorite');
-        if ($data) {
-            $favorite = unserialize($data);
-            $favorite = array_filter($favorite);
-            if (!empty($favorite)) {
-                $db = JFactory::getDbo();
-                $query = $db->getQuery(true);
+		$query->select('*');
+		$query->from('#__catalogue_item');
+		$query->where('id = ' . $id);
+		$db->setQuery($query);
+		$item = $db->loadObject();
 
-                $query->select('*');
-                $query->from('#__catalogue_items');
+		return $item;
+	}
 
-                $query->where('id IN (' . implode(',', $favorite) . ')');
-                $query->order('FIELD(id, ' . implode(',', $favorite) . ')');
+	/**
+	 * Create image thumb function
+	 *
+	 * @param   int     $id      Catalogue item ID
+	 * @param   string  $image   Image relative path
+	 * @param   int     $width   Width of image
+	 * @param   int     $height  Height if image
+	 * @param   string  $suffix  Additional suffix for image filename
+	 *
+	 * @return  bool|string
+	 */
+	public static function createThumb($id, $image, $width, $height, $suffix = 'min')
+	{
+		$resized_folder = 'resized';
 
-                $db->setQuery($query);
-                $items = $db->loadObjectList();
+		// Check for the existence of source image
+		$abs_source_img = JPATH_BASE . DS . $image;
+		if (!file_exists($abs_source_img))
+		{
+			return false;
+		}
 
-            }
-            return $items;
-        }
-        return false;
-    }
+		$images_dir = dirname($image);
 
-    static function getItemsByIds($ids)
-    {
-        $db = JFactory::getDbo();
-        $query = $db->getQuery(true);
+		$abs_images_dir = JPATH_BASE . DS . $images_dir;
 
-        $query->select('*');
-        $query->from('#__catalogue_items');
-        $query->where('id IN (' . implode(',', $ids) . ')');
+		$abs_new_img_dir = $abs_images_dir . DS . $resized_folder . DS . $id . DS . $suffix;
 
-        $db->setQuery($query);
-        $items = $db->loadObjectList();
+		if (!file_exists($abs_images_dir . DS . $resized_folder))
+		{
+			mkdir($abs_images_dir . DS . $resized_folder, 0777);
+		}
 
-        return $items;
-    }
+		if (!file_exists($abs_images_dir . DS . $resized_folder . DS . $id))
+		{
+			mkdir($abs_images_dir . DS . $resized_folder . DS . $id, 0777);
+		}
 
-    static function getItemById($id)
-    {
-        $db = JFactory::getDbo();
-        $query = $db->getQuery(true);
+		if (!file_exists($abs_new_img_dir))
+		{
+			mkdir($abs_new_img_dir, 0777);
+		}
 
-        $query->select('*');
-        $query->from('#__catalogue_item');
-        $query->where('id = ' . $id);
-        $db->setQuery($query);
-        $item = $db->loadObject();
+		$sizeOptions = array(
+			'width' => $width,
+			'height' => $height,
+			'method' => THUMBNAIL_METHOD_SCALE_MIN,
+		);
 
-        return $item;
-    }
+		$p = str_replace('.jpg', '-' . $suffix . '.jpg', $abs_new_img_dir . DS . basename($image));
 
-    static function inWatchList($id)
-    {
-        $app = JFactory::getApplication();
-        $data = $app->getUserState('com_catalogue.watchlist');
+		if (!file_exists($p))
+		{
+			$thumb = new Thumbnail;
 
-        if ($data) {
-            $watchlist = (array)unserialize($data);
-            return in_array($id, $watchlist);
-        }
-        return false;
-    }
+			$resizeImage = $thumb->render($image, $sizeOptions);
+			@imageJpeg($resizeImage, $p, 90);
+			@imagedestroy($resizeImage);
+		}
 
-    static function isFavorite($id)
-    {
-        $app = JFactory::getApplication();
-        $data = $app->getUserState('com_catalogue.favorite');
-        if ($data) {
-            $favorite = unserialize($data);
-            return in_array($id, $favorite);
-        }
-        return false;
-    }
-
-    static function createThumb($id, $image, $width, $height, $suffix = 'min')
-    {
-        $resized_folder = 'resized';
-
-        // check for the existence of source image
-        $abs_source_img = JPATH_BASE . DS . $image;
-        if (!file_exists($abs_source_img)) {
-            return false;
-        }
-
-        $images_dir = dirname($image);
-
-        $abs_images_dir = JPATH_BASE . DS . $images_dir;
-
-        $abs_new_img_dir = $abs_images_dir . DS . $resized_folder . DS . $id . DS . $suffix;
-
-        $abs_new_img = $abs_new_img_dir . DS . basename($image);
-
-        if (!file_exists($abs_images_dir . DS . $resized_folder)) {
-            mkdir($abs_images_dir . DS . $resized_folder, 0777);
-        }
-
-        if (!file_exists($abs_images_dir . DS . $resized_folder . DS . $id)) {
-            mkdir($abs_images_dir . DS . $resized_folder . DS . $id, 0777);
-        }
-
-        if (!file_exists($abs_new_img_dir)) {
-            mkdir($abs_new_img_dir, 0777);
-        }
-
-        $sizeOptions = array(
-            'width' => $width,
-            'height' => $height,
-            'method' => THUMBNAIL_METHOD_SCALE_MIN,
-        );
-
-        $p = str_replace('.jpg', '-' . $suffix . '.jpg', $abs_new_img_dir . DS . basename($image));
-
-        if (!file_exists($p)) {
-            $thumb = new Thumbnail;
-            $resizeImage = $thumb->render($image, $sizeOptions);
-            @imageJpeg($resizeImage, $p, 90);
-            @imagedestroy($resizeImage);
-        }
-
-        return $images_dir . DS . $resized_folder . DS . $id . DS . $suffix . DS . str_replace('.jpg', '-' . $suffix . '.jpg', basename($image));
-    }
+		return $images_dir . DS . $resized_folder . DS . $id . DS . $suffix . DS . str_replace('.jpg', '-' . $suffix . '.jpg', basename($image));
+	}
 
 }
-
-
