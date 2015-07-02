@@ -14,7 +14,7 @@ defined('_JEXEC') or die;
  *
  * @since  1.5
  */
-class CatalogueFilterHelper
+abstract class CatalogueFilterHelper
 {
 	/**
 	 * Method to get data for filters

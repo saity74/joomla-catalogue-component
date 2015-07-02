@@ -25,7 +25,7 @@ class CatalogueHelper
 	 *
 	 * @return  mixed
 	 */
-	static function getItemsByIds($ids)
+	public static function getItemsByIds($ids)
 	{
 		$db = JFactory::getDbo();
 		$query = $db->getQuery(true);
@@ -47,7 +47,7 @@ class CatalogueHelper
 	 *
 	 * @return  mixed
 	 */
-	static function getItemById($id)
+	public static function getItemById($id)
 	{
 		$db = JFactory::getDbo();
 		$query = $db->getQuery(true);
@@ -72,7 +72,7 @@ class CatalogueHelper
 	 *
 	 * @return  bool|string
 	 */
-	static function createThumb($id, $image, $width, $height, $suffix = 'min')
+	public static function createThumb($id, $image, $width, $height, $suffix = 'min')
 	{
 		$resized_folder = 'resized';
 

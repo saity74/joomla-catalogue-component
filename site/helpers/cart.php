@@ -21,7 +21,7 @@ abstract class CatalogueHelperCart
 	 *
 	 * @return  bool|mixed
 	 */
-	static function getCartItems()
+	public static function getCartItems()
 	{
 		$app = JFactory::getApplication();
 		$data = $app->getUserState('com_catalogue.cart');
@@ -47,11 +47,8 @@ abstract class CatalogueHelperCart
 
 				return $items;
 			}
-			else
-				return false;
 		}
-		else
-			return false;
+		return false;
 	}
 
 	/**
@@ -61,7 +58,7 @@ abstract class CatalogueHelperCart
 	 *
 	 * @return  mixed
 	 */
-	static function item_form($n)
+	public static function item_form($n)
 	{
 		$forms = array('товар', 'товара', 'товаров');
 
@@ -75,7 +72,7 @@ abstract class CatalogueHelperCart
 		}
 		else
 		{
-			$forms[2];
+			return $forms[2];
 		}
 	}
 
@@ -86,7 +83,7 @@ abstract class CatalogueHelperCart
 	 *
 	 * @return  bool
 	 */
-	static function inCart($id)
+	public static function inCart($id)
 	{
 		$app = JFactory::getApplication();
 		$data = $app->getUserState('com_catalogue.cart');

@@ -94,7 +94,7 @@ class CatalogueModelCategory extends JModelList
 	 *
 	 * @since   12.2
 	 */
-	function getItems()
+	public function getItems()
 	{
 		$limit = $this->getState('list.limit');
 
@@ -269,7 +269,7 @@ class CatalogueModelCategory extends JModelList
 	 *
 	 * @since   1.6
 	 */
-	function &getLeftSibling()
+	public function &getLeftSibling()
 	{
 		if (!is_object($this->_item))
 		{
@@ -286,7 +286,7 @@ class CatalogueModelCategory extends JModelList
 	 *
 	 * @since   1.6
 	 */
-	function &getRightSibling()
+	public function &getRightSibling()
 	{
 		if (!is_object($this->_item))
 		{
@@ -303,7 +303,7 @@ class CatalogueModelCategory extends JModelList
 	 *
 	 * @since   1.6
 	 */
-	function getChildren()
+	public function &getChildren()
 	{
 
 		if (!is_object($this->_item))

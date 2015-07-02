@@ -28,7 +28,8 @@ $filter_value = $jform['filter'][$filter_name];
 			<?php foreach ($displayData->data as $filterItem) : ?>
 				<?php $selected = ($filter_value == $displayData->filter_field . '_' . $filterItem->id) ? 'selected' : '' ?>
 				<option
-					value="<?php echo $displayData->filter_field; ?>_<?php echo $filterItem->id; ?>" <?php echo $selected ?>><?php echo $filterItem->attr_name; ?></option>
+					value="<?php echo $displayData->filter_field; ?>_<?php echo $filterItem->id; ?>"
+					<?php echo $selected ?>><?php echo $filterItem->attr_name; ?></option>
 			<?php endforeach; ?>
 		</select>
 	</div>
