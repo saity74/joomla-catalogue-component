@@ -126,7 +126,7 @@
 
         <property
                 name="db.pattern"
-                value="${db.prefix}_catalogue_%"
+                value="${db.prefix}catalogue_%"
                 override="true"/>
 
         <property
