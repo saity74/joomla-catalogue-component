@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="com_catalogue" basedir="." default="build">
+
+    <!-- Joomla root directory -->
+    <property name="JPATH_ROOT"
+              value="../../"
+              override="true" />
+    <!-- This project build directory -->
+    <property name="base"
+              value="${project.basedir}"
+              override="true" />
+
+    <property name="admin_dest"
+              value="${base}/administrator"
+              override="true" />
+
+    <property name="site_dest"
+              value="${base}/site"
+              override="true" />
+
+    <property name="admin_src"
+              value="${JPATH_ROOT}/administrator/components/com_catalogue"
+              override="true" />
+
+    <property name="site_src"
+              value="${JPATH_ROOT}/components/com_catalogue"
+              override="true" />
+
+    <target name="clean">
+        <delete dir="${admin_dest}" />
+        <delete dir="${site_dest}" />
+        <delete file="script.php" />
+        <delete file="com_catalogue.xml" />
+    </target>
+
+    <target name="init">
+        <mkdir dir="${admin_dest}" />
+        <mkdir dir="${site_dest}" />
+    </target>
+
+    <target name="copyFiles">
+        <echo>Copying files from dev to package...</echo>
+
+        <copy todir="${base}">
+            <fileset dir="${admin_src}">
+                <include name="com_catalogue.xml"/>
+                <include name="script.php"/>
+            </fileset>
+        </copy>
+
+        <copy todir="${admin_dest}">
+            <fileset dir="${admin_src}">
+                <include name="*/*" />
+                <include name="index.html" />
+                <include name="access.xml" />
+                <include name="config.xml" />
+                <include name="controller.php" />
+            </fileset>
+        </copy>
+        <copy todir="${site_dest}" >
+            <fileset dir="${site_src}">
+                <include name="**/*" />
+            </fileset>
+        </copy>
+    </target>
+
+
+    <target name="phpCodeSniff">
+        <exec executable="phpcs">
+            <arg value="--report=checkstyle" />
+            <arg value="--extensions=php" />
+            <arg value="-p" />
+            <arg value="--report-file=${base}/logs/checkstyle.xml" />
+            <arg value="--standard=${base}/build/phpcs/Joomla" />
+            <arg path="${base}" />
+        </exec>
+    </target>
+
+    <target name="zippa">
+        <fileset dir="${base}" id="allfiles">
+                <include name="${base}/administrator" />
+                <include name="${base}/site" />
+                <include name="${base}/com_catalogue.xml" />
+                <include name="${base}/script.php" />
+        </fileset>
+        <zip destfile="${base}/com_catalogue.zip">
+            <fileset refid="allfiles"/>
+        </zip>
+    </target>
+
+    <target name="build" description="build component" depends="clean, init, copyFiles, phpCodeSniff, zippa"/>
+</project>
