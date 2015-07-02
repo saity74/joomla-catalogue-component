@@ -18,12 +18,13 @@
  * obtain it through the world-wide-web, please send a note to
  * license@php.net so we can mail you a copy immediately.
  *
- * @author      Ildar N. Shaimordanov <ildar-sh@mail.ru>
- * @license     http://www.php.net/license/3_0.txt
- *              The PHP License, version 3.0
+ * @package     Joomla.Site
+ * @subpackage  com_catalogue
+ *
+ * @author   Ildar N. Shaimordanov <ildar-sh@mail.ru>
+ * @license  http://www.php.net/license/3_0.txt
+ *           The PHP License, version 3.0
  */
-
-// {{{
 
 /**
  * Maximal scaling
@@ -49,13 +50,8 @@ define('THUMBNAIL_ALIGN_RIGHT', +1);
 define('THUMBNAIL_ALIGN_TOP', -1);
 define('THUMBNAIL_ALIGN_BOTTOM', +1);
 
-// }}}
-// {{{
-
 class Thumbnail
 {
-
-	// {{{
 
 	/**
 	 * Display rendered image (send it to browser or to file).
@@ -63,17 +59,17 @@ class Thumbnail
 	 * The method calls the render() method automatically and outputs the
 	 * image to the browser or to the file.
 	 *
-	 * @param  mixed $input Destination image, a filename or an image string data or a GD image resource
-	 * @param null $output
-	 * @param  array $options Thumbnail options
-	 *         <pre>
-	 *         width   int    Width of thumbnail
-	 *         height  int    Height of thumbnail
-	 *         percent number Size of thumbnail per size of original image
-	 *         method  int    Method of thumbnail creating
-	 *         halign  int    Horizontal align
-	 *         valign  int    Vertical align
-	 *         </pre>
+	 * @param   mixed $input Destination image, a filename or an image string data or a GD image resource
+	 * @param   null $output
+	 * @param   array $options Thumbnail options
+	 *          <pre>
+	 *          width   int     Width of thumbnail
+	 *          height  int     Height of thumbnail
+	 *          percent number  Size of thumbnail per size of original image
+	 *          method  int     Method of thumbnail creating
+	 *          halign  int     Horizontal align
+	 *          valign  int     Vertical align
+	 *          </pre>
 	 *
 	 * @return bool TRUE on success or FALSE on failure.
 	 * @access public
@@ -137,9 +133,6 @@ class Thumbnail
 
 		return true;
 	}
-
-	// }}}
-	// {{{
 
 	/**
 	 * Draw thumbnail result to resource.
@@ -291,9 +284,6 @@ class Thumbnail
 		return $targetImage;
 	}
 
-	// }}}
-	// {{{
-
 	/**
 	 * Create a GD image resource from given input.
 	 *
@@ -327,9 +317,6 @@ class Thumbnail
 			}
 		}
 	}
-
-	// }}}
-	// {{{
 
 	/**
 	 * Create a GD image resource from file (JPEG, PNG support).
@@ -366,9 +353,6 @@ class Thumbnail
 		return false;
 	}
 
-	// }}}
-	// {{{ render()
-
 	/**
 	 * Create a GD image resource from a string data.
 	 *
@@ -390,9 +374,6 @@ class Thumbnail
 		return imagecreatefromstring($string);
 	}
 
-	// }}}
-	// {{{ _coord()
-
 	function _coord($align, $param, $src)
 	{
 		if ($align < THUMBNAIL_ALIGN_CENTER)
@@ -410,7 +391,5 @@ class Thumbnail
 
 		return $result;
 	}
-
-	// }}}
 
 }
