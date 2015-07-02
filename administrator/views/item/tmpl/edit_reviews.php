@@ -31,7 +31,12 @@
 			</div>
 			<div class="controls">
 				<!-- <input class="review_input_date" type="text" name="jform[_reviews_][review_date][]" value=""/> -->
-				<?php echo JHTML::_('calendar', $value = '' . date('Y-m-d') . '', $name = 'jform[_reviews_][review_date][]', $id = 'review_input_date', $format = '%Y-%m-%d', $attribs = array('size' => '8', 'maxlength' => '10', 'class' => ' validate[\'required\']',)); ?>
+				<?php echo JHTML::_('calendar',
+					$value = '' . date('Y-m-d') . '',
+					$name = 'jform[_reviews_][review_date][]',
+					$id = 'review_input_date',
+					$format = '%Y-%m-%d',
+					$attribs = array('size' => '8', 'maxlength' => '10','class' => ' validate[\'required\']',)); ?>
 			</div>
 		</div>
 		<div class="control-group">
