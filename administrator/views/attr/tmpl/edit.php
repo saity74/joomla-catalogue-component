@@ -1,122 +1,95 @@
 <?php
 /**
  * @package     Joomla.Administrator
- * @subpackage  com_banners
+ * @subpackage  com_catalogue
  *
- * @copyright   Copyright (C) 2005 - 2012 Open Source Matters, Inc. All rights reserved.
+ * @copyright   Copyright (C) 2005 - 2016 Saity74, LLC. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 defined('_JEXEC') or die;
 
+// Include the component HTML helpers.
 JHtml::addIncludePath(JPATH_COMPONENT . '/helpers/html');
-JHtml::_('behavior.tooltip');
-JHtml::_('behavior.formvalidation');
+
+JHtml::_('behavior.formvalidator');
+JHtml::_('behavior.keepalive');
 JHtml::_('formbehavior.chosen', 'select');
+
+$this->configFieldsets  = array('editorConfig');
+$this->hiddenFieldsets  = array('basic-limited');
+$this->ignore_fieldsets = array('jmetadata', 'item_associations');
+
+// Create shortcut to parameters.
+$params = $this->state->get('params');
+
+$app = JFactory::getApplication();
+$input = $app->input;
+$assoc = JLanguageAssociations::isEnabled();
+
+// This checks if the config options have ever been saved. If they haven't they will fall back to the original settings.
+$params = json_decode($params);
+
+JFactory::getDocument()->addScriptDeclaration('
+	Joomla.submitbutton = function(task)
+	{
+		if (task == "attr.cancel" || document.formvalidator.isValid(document.getElementById("item-form")))
+		{
+			jQuery("#permissions-sliders select").attr("disabled", "disabled");
+			' . $this->form->getField('description')->save() . '
+			Joomla.submitform(task, document.getElementById("item-form"));
+		}
+	};
+');
+
 ?>
 
-<script type="text/javascript">
-	Joomla.submitbutton = function (task) {
-		if (task == 'attr.cancel' || document.formvalidator.isValid(document.id('item-form'))) {
-			Joomla.submitform(task, document.getElementById('item-form'));
-		} else {
-			alert('<?php echo $this->escape(JText::_('JGLOBAL_VALIDATION_FORM_FAILED'));?>');
-		}
-	}
-</script>
+<form action="<?php echo JRoute::_('index.php?option=com_catalogue&layout=edit&id=' . (int) $this->item->id); ?>" method="post" name="adminForm"
+	  id="item-form" class="form-validate">
 
-<form
-	action="<?php echo JRoute::_('index.php?option=com_catalogue&view=attr&layout=edit&id=' . (int) $this->item->id); ?>"
-	method="post" name="adminForm" id="item-form" class="form-validate form-vertical">
-	<div class="span8 form-vertical">
+	<?php echo JLayoutHelper::render('joomla.edit.title_alias', $this); ?>
 
-		<fieldset>
-			<ul class="nav nav-tabs">
-				<li class="active"><a href="#details"
-									  data-toggle="tab"><?php echo JText::_('COM_CATALOGUE_MANUFACTURER_DETAILS'); ?></a>
-				</li>
-			</ul>
-			<div class="tab-content">
-				<div class="tab-pane active" id="details">
-					<div class="control-group">
-						<div class="control-label">
-							<?php echo $this->form->getLabel('attr_name'); ?>
-						</div>
-						<div class="controls">
-							<?php echo $this->form->getInput('attr_name'); ?>
-						</div>
-					</div>
+	<div class="form-horizontal">
+		<?php echo JHtml::_('bootstrap.startTabSet', 'myTab', array('active' => 'general')); ?>
 
-
-					<div class="control-group">
-						<div class="control-label">
-							<?php echo $this->form->getLabel('attrdir_id'); ?>
-						</div>
-						<div class="controls">
-							<?php echo $this->form->getInput('attrdir_id'); ?>
-						</div>
-					</div>
-
-					<div class="control-group">
-						<div class="control-label">
-							<?php echo $this->form->getLabel('alias'); ?>
-						</div>
-						<div class="controls">
-							<?php echo $this->form->getInput('alias'); ?>
-						</div>
-					</div>
-
-					<div class="control-group">
-						<div class="control-label">
-							<?php echo $this->form->getLabel('attr_type'); ?>
-						</div>
-						<div class="controls">
-							<?php echo $this->form->getInput('attr_type'); ?>
-						</div>
-					</div>
-
-					<div class="control-group">
-						<div class="control-label">
-							<?php echo $this->form->getLabel('attr_default'); ?>
-						</div>
-						<div class="controls">
-							<?php echo $this->form->getInput('attr_default'); ?>
-						</div>
-					</div>
-
-					<div class="control-group">
-						<div class="control-label">
-							<?php echo $this->form->getLabel('state'); ?>
-						</div>
-						<div class="controls">
-							<?php echo $this->form->getInput('state'); ?>
-						</div>
-					</div>
-
-					<div class="control-group">
-						<div class="control-label">
-							<?php echo $this->form->getLabel('attr_description'); ?>
-						</div>
-						<div class="controls">
-							<?php echo $this->form->getInput('attr_description'); ?>
-						</div>
-					</div>
-					<div class="clearfix">
-					</div>
-					<div class="control-group">
-						<div class="control-label">
-							<?php echo $this->form->getLabel('id'); ?>
-						</div>
-						<div class="controls">
-							<?php echo $this->form->getInput('id'); ?>
-						</div>
-					</div>
-				</div>
-
+		<?php echo JHtml::_('bootstrap.addTab', 'myTab', 'general', JText::_('COM_CATALOGUE_FIELDSET_GENERAL', true)); ?>
+		<div class="row-fluid">
+			<div class="span9">
+				<fieldset class="adminform">
+					<?php echo $this->form->getInput('description'); ?>
+				</fieldset>
 			</div>
-		</fieldset>
+			<div class="span3">
+				<?php echo JLayoutHelper::render('joomla.edit.global', $this); ?>
+				<fieldset class="form-vertical">
+					<?php foreach (['type_id', 'group_id', 'id'] as $field) : ?>
+					<?php echo $this->form->renderField($field); ?>
+					<?php endforeach; ?>
+				</fieldset>
+			</div>
+		</div>
+		<?php echo JHtml::_('bootstrap.endTab'); ?>
 
-		<input type="hidden" name="task" value=""/>
+		<?php if ($assoc) : ?>
+			<?php echo JHtml::_('bootstrap.addTab', 'myTab', 'associations', JText::_('JGLOBAL_FIELDSET_ASSOCIATIONS', true)); ?>
+				<?php echo $this->loadTemplate('associations'); ?>
+			<?php echo JHtml::_('bootstrap.endTab'); ?>
+		<?php endif; ?>
+
+		<?php echo JLayoutHelper::render('joomla.edit.params', $this); ?>
+
+		<?php if ($this->canDo->get('core.admin')) : ?>
+			<?php echo JHtml::_('bootstrap.addTab', 'myTab', 'permissions', JText::_('COM_CATALOGUE_FIELDSET_RULES', true)); ?>
+				<?php echo $this->form->getInput('rules'); ?>
+			<?php echo JHtml::_('bootstrap.endTab'); ?>
+		<?php endif; ?>
+
+		<?php echo JHtml::_('bootstrap.endTabSet'); ?>
+
+		<input type="hidden" name="task" value="" />
+		<input type="hidden" name="return" value="<?php echo $input->getCmd('return'); ?>" />
 		<?php echo JHtml::_('form.token'); ?>
-	</div>
+
+
+		</div>
 </form>

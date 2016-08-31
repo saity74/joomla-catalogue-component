@@ -21,7 +21,7 @@ class CatalogueController extends JControllerLegacy
 	 * @var		string	The default view.
 	 * @since   1.6
 	 */
-	protected $default_view = 'catalogue';
+	protected $default_view = 'items';
 
 	/**
 	 * Method to display a view.
@@ -35,7 +35,7 @@ class CatalogueController extends JControllerLegacy
 	 */
 	public function display($cachable = false, $urlparams = array())
 	{
-		$view   = $this->input->get('view', 'catalogue');
+		$view   = $this->input->get('view', 'items');
 		$layout = $this->input->get('layout', 'default');
 		$id     = $this->input->getInt('id');
 
@@ -44,7 +44,7 @@ class CatalogueController extends JControllerLegacy
 		{
 			$this->setError(JText::sprintf('JLIB_APPLICATION_ERROR_UNHELD_ID', $id));
 			$this->setMessage($this->getError(), 'error');
-			$this->setRedirect(JRoute::_('index.php?option=com_catalogue&view=catalogue', false));
+			$this->setRedirect(JRoute::_('index.php?option=com_catalogue&view=items', false));
 
 			return false;
 		}

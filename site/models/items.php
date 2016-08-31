@@ -8,6 +8,8 @@
  */
 defined('_JEXEC') or die;
 
+JLoader::register('CatalogueHelperItem', JPATH_ADMINISTRATOR . '/components/com_catalogue/helpers/item.php');
+
 /**
  * Model class for handling lists of items.
  *
@@ -35,15 +37,59 @@ class CatalogueModelItems extends JModelList
 		{
 			$config['filter_fields'] = array(
 				'id', 'itm.id',
-				'item_name', 'itm.item_name',
+				'title', 'itm.title',
 				'price', 'itm.price',
 				'alias', 'itm.alias',
 				'state', 'itm.state',
-				'ordering', 'itm.ordering',
-				'published', 'itm.published'
+				'ordering', 'itm.ordering'
 			);
 		}
+
 		parent::__construct($config);
+	}
+
+	/**
+	 * Get all attributes with values
+	 *
+	 * @return bool|mixed
+	 */
+	public function getAttributes()
+	{
+		$db = $this->getDbo();
+		$attr_query = '';
+
+		$attr_types = ['text', 'int', 'float', 'bool', 'datetime'];
+
+		// UNION select from all attribute tables for values
+		foreach ($attr_types as $i => $type)
+		{
+
+			if ($i !== 0)
+			{
+				$attr_query .= ' UNION ';
+			}
+
+			$attr_query .= "SELECT a_$type.item_id, a_$type.value, aa.alias, aa.title, aa.id,
+									aag.title as group_title, aag.alias as group_alias,
+									aag.id as group_id
+							FROM `#__catalogue_attr_value_$type` as a_$type
+							LEFT JOIN `#__catalogue_attr` as aa ON a_$type.attr_id = aa.id
+							LEFT JOIN `#__catalogue_attr_group` aag ON aa.group_id = aag.id
+							WHERE aa.state = 1";
+		}
+
+		$db->setQuery($attr_query);
+
+		try
+		{
+			return $db->loadObjectList();
+		}
+		catch (Exception $e)
+		{
+			echo JText::sprintf('JLIB_DATABASE_ERROR_FUNCTION_FAILED', $e->getCode(), $e->getMessage()) . '<br />';
+
+			return false;
+		}
 	}
 
 	/**
@@ -60,7 +106,7 @@ class CatalogueModelItems extends JModelList
 
 		$categoryId = $this->getState('filter.category_id');
 
-		// $price_cat = $this->getState('filters.price_cat', 0);
+		$itemId = JFactory::getApplication()->input->get('Itemid', 0);
 
 		if (is_numeric($categoryId))
 		{
@@ -68,11 +114,11 @@ class CatalogueModelItems extends JModelList
 
 			// Add subcategory check
 			$includeSubcategories = $this->getState('filter.subcategories', false);
-			$categoryEquals = 'itm.category_id ' . $type . (int) $categoryId;
+			$categoryEquals = 'itm.catid ' . $type . (int) $categoryId;
 
 			if ($includeSubcategories)
 			{
-				$levels = (int) $this->getState('filter.max_category_levels', '1');
+				$levels = (int)$this->getState('filter.max_category_levels', '1');
 
 				// Create a subquery for the subcategory list
 				$subQuery = $db->getQuery(true)
@@ -87,7 +133,7 @@ class CatalogueModelItems extends JModelList
 				}
 
 				// Add the subquery to the main query
-				$query->where('(' . $categoryEquals . ' OR itm.category_id IN (' . $subQuery->__toString() . '))');
+				$query->where('(' . $categoryEquals . ' OR itm.catid IN (' . $subQuery->__toString() . '))');
 
 			}
 			else
@@ -103,231 +149,172 @@ class CatalogueModelItems extends JModelList
 			if (!empty($categoryId))
 			{
 				$type = $this->getState('filter.category_id.include', true) ? 'IN' : 'NOT IN';
-				$query->where('itm.category_id ' . $type . ' (' . $categoryId . ')');
+				$query->where('itm.catid ' . $type . ' (' . $categoryId . ')');
 			}
 		}
-		// $price_cat != 0 ? $price_category = ' AND itm.price_cat = '.$price_cat : $price_category = '';
+
 		$params = $this->state->params;
 
-		$params->get('catalogue_sort') == 1 ? $ordering = 'ordering' : $ordering = 'item_name';
+		$params->get('catalogue_sort') == 1 ? $ordering = 'ordering' : $ordering = 'title';
 
-		$query->select('itm.*, cat.title AS category_name, cat.description AS category_description')
-			->from('#__catalogue_item AS itm')
-			->join('LEFT', '#__categories as cat ON itm.category_id = cat.id')
-			->where('itm.state = 1 AND itm.published = 1');
+		$query->select(
+			$this->getState(
+				'list.select',
+				'itm.*, cat.title AS category_name, cat.description AS category_description'
+			)
+		)
+			->from('`#__catalogue_item` AS `itm`')
+			->join('LEFT', '`#__categories` as `cat` ON `itm`.`catid` = `cat`.`id`')
+			->where('`itm`.`state` = 1 AND `itm`.`parent_id` = 1');
 
-		$sphinx_ids = $this->getState('filter.sphinx_ids', array());
-		if (is_array($sphinx_ids) && !empty($sphinx_ids))
+		// Price filter
+		$price = $this->getState('filter.price');
+
+		if (!empty($price))
 		{
-			$ids = implode(',', $sphinx_ids);
-			$query->where('itm.id IN (' . $ids . ')');
+			if (strpos($price, '-') !== false)
+			{
+				@list($min, $max) = explode('-', $price);
+				$query->where($this->_db->qn('itm.price') . ' BETWEEN ' . $this->_db->q((int)$min) . ' AND ' . $this->_db->q((int)$max));
+			}
+			else
+			{
+				$query->where($this->_db->qn('itm.price') . ' >= ' . $this->_db->q((int)$price));
+			}
 		}
 
-		$query->order('itm.' . $ordering . ', ' . $this->getState('list.ordering', 'itm.price') . ' ' .
-			$this->getState('list.direction', 'ASC')
-		);
+		// Tags filter
+		$tagIds = $this->getState('filter.tag', []);
+
+		$query->select('`tagmap`.`tag_id`, `tags`.`title` AS `tag_title`, `tags`.`params` AS `tag_params`');
+
+		if (is_array($tagIds) && !empty($tagIds))
+		{
+			$query->where($db->quoteName('tagmap.tag_id') . ' IN (' . implode(',', $tagIds) . ')');
+		}
+
+		$query->join(
+			'LEFT', $db->quoteName('#__contentitem_tag_map', 'tagmap')
+			. ' ON ' . $db->quoteName('tagmap.content_item_id') . ' = ' . $db->quoteName('itm.id')
+			. ' AND ' . $db->quoteName('tagmap.type_alias') . ' = ' . $db->quote('com_catalogue.item')
+		)->group('itm.id');
+
+		$query->join('LEFT', $db->quoteName('#__tags', 'tags')
+			. 'ON ' . $db->quoteName('tagmap.tag_id') . ' = ' . $db->quoteName('tags.id'));
+
+		$filters = $this->getState('filter.' . $categoryId . ':' . $itemId);
+
+		if (is_array($filters) && array_key_exists('sku', $filters))
+		{
+			$filter_sku = trim($filters['sku']);
+			unset($filters['sku']);
+
+			if (!empty($filter_sku))
+			{
+				$filter_sku = $db->quote('%' . str_replace(' ', '%', $db->escape($filter_sku, true) . '%'));
+				$query->where('itm.sku LIKE ' . $filter_sku);
+			}
+		}
+
+		if (is_array($filters) && !empty($filters))
+		{
+			$filters = array_filter(
+				$filters,
+				function ($val)
+				{
+					return !empty($val);
+				}
+			);
+
+			// Filter number
+			$fn = 1;
+
+			foreach ($filters as $k => $filter_id)
+			{
+				$query->join('INNER',
+					$db->qn('#__catalogue_attr_value_bool', 'eav' . $fn)
+					. ' ON ' . $db->qn('eav' . $fn . '.item_id') . ' = ' . $db->qn('itm.id')
+				);
+
+				$where = "`eav$fn`.`attr_id` ";
+				$where .= is_array($filter_id) ? 'IN (' . implode(',', $filter_id) . ')' : '= ' . $db->q((int) $filter_id);
+
+				$query->where($where);
+
+				$fn++;
+			}
+		}
+
+		$query->order($this->getState('list.ordering', 'itm.ordering') . ' ' . $this->getState('list.direction', 'ASC'));
 
 		return $query;
 	}
 
-	/**
-	 * Method get item by id
-	 *
-	 * @param   int  $id  ID of item
-	 *
-	 * @return  mixed|null
-	 */
-	public function getItem($id)
-	{
-		$db = JFactory::getDbo();
-		$query = $db->getQuery(true);
-
-		$query->select('itm.*');
-		$query->from('#__catalogue_item AS itm');
-		$query->where('itm.id = ' . $id);
-		$db->setQuery($query);
-		$this->_items = $db->loadObject();
-
-		return $this->_items;
-	}
 
 	/**
-	 * Method get hot items from catalogue
+	 * Method to get an array of data items.
 	 *
-	 * @return  mixed
+	 * @return  mixed  An array of data items on success, false on failure.
+	 *
+	 * @since   12.2
 	 */
-	public function getHot()
+	public function getItems()
 	{
-		$db = JFactory::getDbo();
-		$query = $db->getQuery(true);
+		JPluginHelper::importPlugin('content');
 
-		$query->select('i.*');
-		$query->from('#__catalogue_item AS i');
-		$query->where('i.state = 1  AND i.published = 1');
-		$query->where('i.sticker = 1');
-		$query->order('i.ordering');
-		$db->setQuery($query, 0, 4);
+		$dispatcher = JEventDispatcher::getInstance();
+		$dispatcher->trigger('onCatalogueBeforeGetItems', array ('com_catalogue.category'));
+		$items = parent::getItems();
 
-		$items = $db->loadObjectList();
-
-		// Load attr size..
-
-		$ids = array_map(
-			function($el){
-				return $el->id;
-			},
-			$items
-		);
-
-		$query = $this->_db->getQuery(true);
-		if (!empty($ids))
+		if (is_array($items) && !empty($items))
 		{
-			$query->select('p.*, a.attr_name')
-				->from('#__catalogue_attr_price as p')
-				->join('LEFT', '#__catalogue_attr as a ON a.published = 1 AND a.attrdir_id = 1 AND a.id = p.attr_id')
-				->where('p.item_id in (' . implode(', ', $ids) . ')')
-				->order('a.ordering');
-
-			$this->_db->setQuery($query);
-
-			$attrs = $this->_db->loadObjectList();
-
-			foreach ($attrs as $attr)
-			{
-				$item_attrs[$attr->item_id][] = $attr;
-			}
+			$attrs = $this->getAttributes();
 
 			foreach ($items as $item)
 			{
-				if (isset($item_attrs[$item->id]))
+				CatalogueHelperItem::getTags($item);
+				CatalogueHelperItem::decodeParams($item);
+
+				$item->attributes = [];
+
+				foreach ($attrs as $attr)
 				{
-					$item->sizes = $item_attrs[$item->id];
+					if ($item->id == $attr->item_id)
+					{
+						if ( !isset($item->attributes[$attr->group_alias]) )
+						{
+							$item->attributes[$attr->group_alias] = (object) [
+								'title' => $attr->group_title,
+								'attrs' => []
+							];
+						}
+
+						$item->attributes[$attr->group_alias]->attrs[$attr->alias] = (object) [
+							'title' => $attr->title,
+							'value' => $attr->value
+						];
+					}
 				}
 			}
 		}
-
-		// ..Load attr size
 
 		return $items;
 	}
 
 	/**
-	 * Method get new items from catalogue
+	 * Method to get a store id based on the model configuration state.
 	 *
-	 * @return  mixed
-	 */
-	public function getNew()
-	{
-		$db = JFactory::getDbo();
-		$query = $db->getQuery(true);
-
-		$query->select('i.*');
-		$query->from('#__catalogue_item AS i');
-		$query->where('i.state = 1  AND i.published = 1');
-		$query->where('i.sticker = 2');
-		$query->order('i.ordering');
-		$db->setQuery($query, 0, 4);
-
-		$items = $db->loadObjectList();
-
-		// Load attr size..
-
-		$ids = array_map(
-			function($el){
-				return $el->id;
-			},
-			$items
-		);
-
-		$query = $this->_db->getQuery(true);
-		if (!empty($ids))
-		{
-			$query->select('p.*, a.attr_name')
-				->from('#__catalogue_attr_price as p')
-				->join('LEFT', '#__catalogue_attr as a ON a.published = 1 AND a.attrdir_id = 1 AND a.id = p.attr_id')
-				->where('p.item_id in (' . implode(', ', $ids) . ')')
-				->order('a.ordering');
-
-			$this->_db->setQuery($query);
-
-			$attrs = $this->_db->loadObjectList();
-
-			foreach ($attrs as $attr)
-			{
-				$item_attrs[$attr->item_id][] = $attr;
-			}
-
-			foreach ($items as $item)
-			{
-				if (isset($item_attrs[$item->id]))
-				{
-					$item->sizes = $item_attrs[$item->id];
-				}
-			}
-		}
-
-		// ..Load attr size
-
-		return $items;
-	}
-
-	/**
-	 * Method get sale items from catalogue
+	 * @param   string  $id  An identifier string to generate the store id.
 	 *
-	 * @return mixed
+	 * @return  string  A store id.
 	 */
-	public function getSale()
+	protected function getStoreId($id = '')
 	{
-		$db = JFactory::getDbo();
-		$query = $db->getQuery(true);
+		// Add the list state to the store id.
+		$id .= ':' . $this->getState('filter.category_id');
+		$id .= ':' . serialize($this->getState('filter'));
 
-		$query->select('i.*');
-		$query->from('#__catalogue_item AS i');
-		$query->where('i.state = 1  AND i.published = 1');
-		$query->where('i.sticker = 3');
-		$query->order('i.ordering');
-		$db->setQuery($query, 0, 4);
-
-		$items = $db->loadObjectList();
-
-		// Load attr size..
-
-		$ids = array_map(
-			function($el){
-				return $el->id;
-			},
-			$items
-		);
-
-		$query = $this->_db->getQuery(true);
-		if (!empty($ids))
-		{
-			$query->select('p.*, a.attr_name')
-				->from('#__catalogue_attr_price as p')
-				->join('LEFT', '#__catalogue_attr as a ON a.published = 1 AND a.attrdir_id = 1 AND a.id = p.attr_id')
-				->where('p.item_id in (' . implode(', ', $ids) . ')')
-				->order('a.ordering');
-
-			$this->_db->setQuery($query);
-			$attrs = $this->_db->loadObjectList();
-
-			foreach ($attrs as $attr)
-			{
-				$item_attrs[$attr->item_id][] = $attr;
-			}
-
-			foreach ($items as $item)
-			{
-				if (isset($item_attrs[$item->id]))
-				{
-					$item->sizes = $item_attrs[$item->id];
-				}
-			}
-		}
-
-		// ..Load attr size
-
-		return $items;
+		return parent::getStoreId($id);
 	}
 
 	/**
@@ -378,24 +365,8 @@ class CatalogueModelItems extends JModelList
 		$catid = $app->input->getUInt('cid');
 		$this->setState('filter.category_id', $catid);
 
-		$sphinx_ids = $app->input->getArray('sphinx_ids');
-		$this->setState('filter.sphinx_ids', $sphinx_ids);
-
 		$id = $app->input->getUInt('id');
 		$this->setState('item.id', $id);
-
-		$db = JFactory::getDbo();
-
-		$db->setQuery(
-			$db->getQuery(true)
-				->select('title AS category_name, category_description')
-				->from('#__categories')
-				->where('state = 1 AND published AND id = ' . $catid)
-		);
-		$category = $db->loadObject();
-
-		$this->setState('category.name', $category->category_name);
-		$this->setState('category.desc', $category->category_description);
 
 		// Load the parameters.
 		$params = $app->getParams();

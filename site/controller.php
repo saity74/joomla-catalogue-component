@@ -12,38 +12,25 @@ require_once(dirname(__FILE__) . DS . 'helper.php');
 
 /**
  * Class CatalogueController
- *
- * @since  Joomla 1.5
  */
 class CatalogueController extends JControllerLegacy
 {
+
 	/**
-	 * Method to display a search view.
+	 * Constructor.
 	 *
-	 * @return  JController		This object to support chaining.
+	 * @param   array  $config  An optional associative array of configuration settings.
+	 * Recognized key values include 'name', 'default_task', 'model_path', and
+	 * 'view_path' (this list is not meant to be comprehensive).
 	 *
-	 * @since   1.5
+	 * @since   12.2
 	 */
-	public function search()
+	public function __construct(array $config)
 	{
-		$sphinx_search_model = $this->getModel('Search', 'CatalogueModel');
-		$result = $sphinx_search_model->getItems();
 
-		$app = JFactory::getApplication('site');
-		$jinput = $app->input;
-		$category_id = $jinput->get('cid');
+		$this->input = JFactory::getApplication('site')->input;
 
-		$ids = JArrayHelper::getColumn($result, 'id');
-
-		$app->setUserState('com_catalogue.category.' . $category_id . '.filter.sphinx_ids', $ids);
-
-		/*
-		 * $result = array('result' => array('total' => count($ids)));
-		 * echo json_encode($result);
-		 * $app->close();
-		 */
-
-		$this->display();
+		parent::__construct($config);
 	}
 
 	/**
@@ -59,22 +46,15 @@ class CatalogueController extends JControllerLegacy
 
 	public function display($cachable = false, $urlparams = array())
 	{
-		$ids = array();
+		$vName = $this->input->get('view');
 
-		// $sphinx_search_model = $this->getModel('Search', 'CatalogueModel');
-		// $result = $sphinx_search_model->getItems();
-
-		$app = JFactory::getApplication('site');
-		$jinput = $app->input;
-		$category_id = $jinput->get('cid');
-
-		// $ids = JArrayHelper::getColumn($result, 'id');
-
-		if (!empty($ids))
+		if ($vName == 'order' && CatalogueCart::$isEmpty)
 		{
-			$app->setUserState('com_catalogue.category.' . $category_id . '.filter.sphinx_ids', $ids);
+			$this->setRedirect(JRoute::_(CatalogueHelperRoute::getCartRoute()), false);
 		}
 
-		parent::display($cachable, $urlparams);
+		parent::display();
+
+		return $this;
 	}
 }

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form>
+    <fieldset name="filter">
+        <fields name="text">
+            <field
+                    id="artikul"
+                    name="artikul"
+                    type="text"
+                    label="COM_CATALOGUE_ARTIKUL_SEARCH_LABEL"
+                    hint="COM_CATALOGUE_ARTIKUL_SEARCH_HINT"
+                    description="COM_CATALOGUE_ARTIKUL_SEARCH_DESC"/>
+        </fields>
+    </fieldset>
+</form>
+

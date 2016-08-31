@@ -3,20 +3,16 @@
  * @package     Joomla.Administrator
  * @subpackage  com_catalogue
  *
- * @copyright   Copyright (C) 2012 - 2015 Saity74, LLC. All rights reserved.
+ * @copyright   Copyright (C) 2005 - 2016 Saity74, LLC. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 
 defined('_JEXEC') or die;
 
-JLoader::register('CatalogueHelper', JPATH_COMPONENT . '/helpers/catalogue.php');
-
 /**
- * CatalogueViewAttr View
+ * View to edit an attr.
  *
- * Class holding methods for displaying presentation data.
- *
- * @since  12.2
+ * @since  1.6
  */
 class CatalogueViewAttr extends JViewLegacy
 {
@@ -33,16 +29,14 @@ class CatalogueViewAttr extends JViewLegacy
 	 *
 	 * @return  mixed  A string if successful, otherwise a Error object.
 	 *
-	 * @see     JViewLegacy::loadTemplate()
-	 * @since   12.2
+	 * @since   1.6
 	 */
 	public function display($tpl = null)
 	{
-
-		// Initialiase variables.
-		$this->form = $this->get('Form');
-		$this->item = $this->get('Item');
+		$this->form  = $this->get('Form');
+		$this->item  = $this->get('Item');
 		$this->state = $this->get('State');
+		$this->canDo = JHelperContent::getActions('com_catalogue', 'attr', $this->item->id);
 
 		// Check for errors.
 		if (count($errors = $this->get('Errors')))
@@ -52,8 +46,16 @@ class CatalogueViewAttr extends JViewLegacy
 			return false;
 		}
 
+		if ($this->getLayout() == 'modal')
+		{
+			$this->form->setFieldAttribute('language', 'readonly', 'true');
+			$this->form->setFieldAttribute('group_id', 'readonly', 'true');
+		}
+
 		$this->addToolbar();
 		parent::display($tpl);
+
+		return true;
 	}
 
 	/**
@@ -61,50 +63,63 @@ class CatalogueViewAttr extends JViewLegacy
 	 *
 	 * @return  void
 	 *
-	 * @since    1.6
+	 * @since   1.6
 	 */
 	protected function addToolbar()
 	{
 		JFactory::getApplication()->input->set('hidemainmenu', true);
-
-		$user = JFactory::getUser();
-		$userId = $user->get('id');
-		$isNew = ($this->item->id == 0);
+		$user       = JFactory::getUser();
+		$userId     = $user->get('id');
+		$isNew      = ($this->item->id == 0);
 		$checkedOut = !($this->item->checked_out == 0 || $this->item->checked_out == $userId);
 
-		// Since we don't track these assets at the item level, use the manufacturer id.
-		/** @noinspection PhpUndefinedClassInspection */
-		$canDo = CatalogueHelper::getActions($this->item->id, 0);
+		// Built the actions for new and existing records.
+		$canDo = $this->canDo;
 
-		JToolbarHelper::title($isNew ? JText::_('COM_CATALOGUE_MANAGER_ATTR_NEW') : JText::_('COM_CATALOGUE_MANAGER_ATTR_EDIT'));
+		JToolbarHelper::title(
+			JText::_('COM_CATALOGUE_PAGE_' . ($checkedOut ? 'VIEW' : ($isNew ? 'ADD' : 'EDIT')) . '_ATTR'),
+			'pencil-2 attr-add'
+		);
 
-		// If not checked out, can save the item.
-		if (!$checkedOut && ($canDo->get('core.edit')))
+		// For new records, check the create permission.
+		if ($isNew && (count($user->getAuthorisedCategories('com_catalogue', 'core.create')) > 0))
 		{
 			JToolbarHelper::apply('attr.apply');
 			JToolbarHelper::save('attr.save');
-
-			if ($canDo->get('core.create'))
-			{
-				JToolbarHelper::save2new('attr.save2new');
-			}
-		}
-
-		// If an existing item, can save to a copy.
-		if (!$isNew && $canDo->get('core.create'))
-		{
-			JToolbarHelper::save2copy('attr.save2copy');
-		}
-
-		if (empty($this->item->id))
-		{
+			JToolbarHelper::save2new('attr.save2new');
 			JToolbarHelper::cancel('attr.cancel');
 		}
 		else
 		{
+			// Can't save the record if it's checked out.
+			if (!$checkedOut)
+			{
+				// Since it's an existing record, check the edit permission, or fall back to edit own if the owner.
+				if ($canDo->get('core.edit') || ($canDo->get('core.edit.own') && $this->item->created_by == $userId))
+				{
+					JToolbarHelper::apply('attr.apply');
+					JToolbarHelper::save('attr.save');
+
+					// We can save this record, but check the create permission to see if we can return to make a new one.
+					if ($canDo->get('core.create'))
+					{
+						JToolbarHelper::save2new('attr.save2new');
+					}
+				}
+			}
+
+			// If checked out, we can still save
+			if ($canDo->get('core.create'))
+			{
+				JToolbarHelper::save2copy('attr.save2copy');
+			}
+
+			if ($this->state->params->get('save_history', 0) && $canDo->get('core.edit'))
+			{
+				JToolbarHelper::versions('com_catalogue.attr', $this->item->id);
+			}
+
 			JToolbarHelper::cancel('attr.cancel', 'JTOOLBAR_CLOSE');
 		}
-
-		JToolbarHelper::divider();
 	}
 }

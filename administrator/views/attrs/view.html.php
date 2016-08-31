@@ -3,23 +3,19 @@
  * @package     Joomla.Administrator
  * @subpackage  com_catalogue
  *
- * @copyright   Copyright (C) 2012 - 2015 Saity74, LLC. All rights reserved.
+ * @copyright   Copyright (C) 2005 - 2016 Saity74, LLC. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
+
 defined('_JEXEC') or die;
 
-JLoader::register('CatalogueHelper', JPATH_COMPONENT . '/helpers/catalogue.php');
-
 /**
- * CatalogueViewAttrs View
+ * View class for a list of attrs.
  *
- * Class holding methods for displaying presentation data.
- *
- * @since  12.2
+ * @since  1.6
  */
 class CatalogueViewAttrs extends JViewLegacy
 {
-
 	protected $items;
 
 	protected $pagination;
@@ -27,20 +23,28 @@ class CatalogueViewAttrs extends JViewLegacy
 	protected $state;
 
 	/**
-	 * Execute and display a template script.
+	 * Display the view
 	 *
 	 * @param   string  $tpl  The name of the template file to parse; automatically searches through the template paths.
 	 *
-	 * @return  mixed  A string if successful, otherwise a Error object.
-	 *
-	 * @see     JViewLegacy::loadTemplate()
-	 * @since   12.2
+	 * @return  void
 	 */
 	public function display($tpl = null)
 	{
-		$this->items = $this->get('Items');
-		$this->pagination = $this->get('Pagination');
-		$this->state = $this->get('State');
+		if ($this->getLayout() !== 'modal')
+		{
+			CatalogueHelper::addSubmenu('attrs');
+		}
+
+		JFactory::getDocument()
+			->addScript('/administrator/components/com_catalogue/assets/js/admin-panel.js')
+			->addStyleSheet('/administrator/components/com_catalogue/assets/css/admin-panel.css');
+
+		$this->items         = $this->get('Items');
+		$this->pagination    = $this->get('Pagination');
+		$this->state         = $this->get('State');
+		$this->filterForm    = $this->get('FilterForm');
+		$this->activeFilters = $this->get('ActiveFilters');
 
 		// Check for errors.
 		if (count($errors = $this->get('Errors')))
@@ -50,16 +54,14 @@ class CatalogueViewAttrs extends JViewLegacy
 			return false;
 		}
 
-		/** @noinspection PhpUndefinedClassInspection */
-		CatalogueHelper::addSubmenu('attrs');
-
-		$this->addToolbar();
-
-		$this->sidebar = JHtmlSidebar::render();
+		// We don't need toolbar in the modal window.
+		if ($this->getLayout() !== 'modal')
+		{
+			$this->addToolbar();
+			$this->sidebar = JHtmlSidebar::render();
+		}
 
 		parent::display($tpl);
-
-		return true;
 	}
 
 	/**
@@ -67,49 +69,62 @@ class CatalogueViewAttrs extends JViewLegacy
 	 *
 	 * @return  void
 	 *
-	 * @since    1.6
+	 * @since   1.6
 	 */
 	protected function addToolbar()
 	{
-		/** @noinspection PhpIncludeInspection */
-		require_once JPATH_COMPONENT . '/helpers/catalogue.php';
+		$canDo = JHelperContent::getActions('com_catalogue', 'attr', $this->state->get('filter.group_id'));
+		$user  = JFactory::getUser();
 
-		$canDo = CatalogueHelper::getActions($this->state->get('filter.attr_id'));
+		// Get the toolbar object instance
+		$bar = JToolbar::getInstance('toolbar');
 
-		JToolbarHelper::title(JText::_('COM_MANUFACTURER_MANAGER'), 'component.png');
-		if ($canDo->get('core.create'))
+		JToolbarHelper::title(JText::_('COM_CATALOGUE_ATTRS_MANAGER_TITLE'), 'bars');
+
+		if ($canDo->get('core.create') || (count($user->getAuthorisedCategories('com_catalogue', 'core.create'))) > 0 )
 		{
 			JToolbarHelper::addNew('attr.add');
 		}
 
-		if (($canDo->get('core.edit')))
+		if (($canDo->get('core.edit')) || ($canDo->get('core.edit.own')))
 		{
 			JToolbarHelper::editList('attr.edit');
 		}
 
+		if ($canDo->get('core.edit.state'))
+		{
+			JToolbarHelper::publish('attrs.publish', 'JTOOLBAR_PUBLISH', true);
+			JToolbarHelper::unpublish('attrs.unpublish', 'JTOOLBAR_UNPUBLISH', true);
+			JToolbarHelper::checkin('attrs.checkin');
+		}
+
+		// Add a batch button
+		if ($user->authorise('core.create', 'com_catalogue')
+			&& $user->authorise('core.edit', 'com_catalogue')
+			&& $user->authorise('core.edit.state', 'com_catalogue'))
+		{
+			$title = JText::_('JTOOLBAR_BATCH');
+
+			// Instantiate a new JLayoutFile instance and render the batch button
+			$layout = new JLayoutFile('joomla.toolbar.batch');
+
+			$dhtml = $layout->render(array('title' => $title));
+			$bar->appendButton('Custom', $dhtml, 'batch');
+		}
+
 		if ($this->state->get('filter.published') == -2 && $canDo->get('core.delete'))
 		{
-			JToolbarHelper::deleteList('', 'attrs.delete', 'JTOOLBAR_EMPTY_TRASH');
+			JToolbarHelper::deleteList('JGLOBAL_CONFIRM_DELETE', 'attrs.delete', 'JTOOLBAR_EMPTY_TRASH');
 		}
 		elseif ($canDo->get('core.edit.state'))
 		{
 			JToolbarHelper::trash('attrs.trash');
 		}
 
-		JHtmlSidebar::setAction('index.php?option=com_catalogue&view=manfacturers');
-
-		JHtmlSidebar::addFilter(
-			JText::_('JOPTION_SELECT_PUBLISHED'),
-			'filter_published',
-			JHtml::_('select.options', JHtml::_('jgrid.publishedOptions'), 'value', 'text', $this->state->get('filter.published'), true)
-		);
-
-		JHtmlSidebar::addFilter(
-			JText::_('JOPTION_SELECT_ATTRDIR'),
-			'filter_attrdir_id',
-			JHtml::_('select.options', CatalogueHelper::getAttrDirsOptions(), 'value', 'text', $this->state->get('filter.attrdir_id'))
-		);
-
+		if ($user->authorise('core.admin', 'com_catalogue') || $user->authorise('core.options', 'com_catalogue'))
+		{
+			JToolbarHelper::preferences('com_catalogue');
+		}
 	}
 
 	/**
@@ -121,11 +136,15 @@ class CatalogueViewAttrs extends JViewLegacy
 	 */
 	protected function getSortFields()
 	{
-		return array(
-			'a.attr_name' => JText::_('COM_CATALOGUE_ATTR_NAME'),
-			'a.attr_type' => JText::_('COM_CATALOGUE_ATTR_TYPE'),
-			'a.ordering' => JText::_('JGRID_HEADING_ORDERING'),
-			'a.id' => JText::_('JGRID_HEADING_ID')
-		);
+		return [
+			'a.ordering'     => JText::_('JGRID_HEADING_ORDERING'),
+			'a.state'        => JText::_('JSTATUS'),
+			'a.title'        => JText::_('JGLOBAL_TITLE'),
+			'group_title'    => JText::_('COM_CATALOGUE_ATTR_GROUP_FILTER_TITLE'),
+			'type_title'     => JText::_('COM_CATALOGUE_ATTR_TYPE_FILTER_TITLE'),
+			'access_level'   => JText::_('JGRID_HEADING_ACCESS'),
+			'language'       => JText::_('JGRID_HEADING_LANGUAGE'),
+			'a.id'           => JText::_('JGRID_HEADING_ID'),
+		];
 	}
 }

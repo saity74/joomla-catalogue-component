@@ -3,7 +3,7 @@
  * @package     Joomla.Site
  * @subpackage  com_catalogue
  *
- * @copyright   Copyright (C) 20012 - 2015 Saity74, LLC. All rights reserved.
+ * @copyright   Copyright (C) 2012 - 2016 Saity74, LLC. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 defined('_JEXEC') or die;
@@ -54,6 +54,7 @@ class CatalogueViewCategory extends JViewCategory
 	 */
 	protected $pagination;
 
+
 	/**
 	 * Execute and display a template script.
 	 *
@@ -67,13 +68,14 @@ class CatalogueViewCategory extends JViewCategory
 	{
 		parent::commonCategoryDisplay();
 
-		$this->items = $this->get('Items');
-		$this->state = $this->get('State');
-		$this->pagination = $this->get('Pagination');
+		$this->items         = $this->get('Items');
+		$this->state         = $this->get('State');
+		$this->pagination    = $this->get('Pagination');
 
-		$this->filters = $this->get('Filters');
+		$this->filterForm    = $this->get('FilterForm');
+		$this->activeFilters = $this->get('ActiveFilters');
 
-		$this->params = $this->state->get('params');
+		$this->params        = $this->state->get('params');
 
 		// Check for errors.
 		if (count($errors = $this->get('Errors')))
@@ -84,80 +86,5 @@ class CatalogueViewCategory extends JViewCategory
 		}
 
 		parent::display($tpl);
-	}
-
-	/**
-	 * Method to prepares the document
-	 *
-	 * @return  void
-	 *
-	 * @since   3.2
-	 */
-	protected function prepareDocument()
-	{
-		parent::prepareDocument();
-
-		$title = null;
-		$metadata = new JRegistry($this->state->get('category.metadata'));
-
-		// $this->category = JCategories::getInstance('Catalogue')->get($this->state->get('category.id'));
-
-		$menu = $this->menu;
-		$cid = (int) @$menu->query['cid'];
-
-		if ($menu && $cid == $this->category->id)
-		{
-			// Если привязана к меню то берем TITLE из меню
-			$title = $menu->params->get('page_title');
-		}
-		else
-		{
-			// Если нет то берем TITLE из настрое категории (по умолчанию название категории)
-			$title = $metadata->get('metatitle', $this->category->title);
-		}
-
-		$app = JFactory::getApplication();
-
-		// Установка <TITLE>
-
-		if (empty($title))
-		{
-			$title = $app->getCfg('sitename');
-		}
-		elseif ($app->getCfg('sitename_pagetitles', 0) == 1)
-		{
-			$title = JText::sprintf('JPAGETITLE', $app->getCfg('sitename'), $title);
-		}
-		elseif ($app->getCfg('sitename_pagetitles', 0) == 2)
-		{
-			$title = JText::sprintf('JPAGETITLE', $title, $app->getCfg('sitename'));
-		}
-
-		$this->document->setTitle($title);
-
-		// Устновка метаданных
-
-		if ($metadesc = $metadata->get('metadesc', ''))
-		{
-			$this->document->setDescription($metadesc);
-		}
-		elseif (!$metadesc && $menu->params->get('menu-meta_description'))
-		{
-			$this->document->setDescription($menu->params->get('menu-meta_description'));
-		}
-
-		if ($metakey = $metadata->get('metakey', ''))
-		{
-			$this->document->setMetadata('keywords', $metakey);
-		}
-		elseif (!$metakey && $menu->params->get('menu-meta_keywords'))
-		{
-			$this->document->setMetadata('keywords', $menu->params->get('menu-meta_keywords'));
-		}
-
-		if ($robots = $metadata->get('robots', ''))
-		{
-			$this->document->setMetadata('robots', $robots);
-		}
 	}
 }

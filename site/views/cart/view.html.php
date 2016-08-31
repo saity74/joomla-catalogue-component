@@ -11,10 +11,22 @@ defined('_JEXEC') or die;
 /**
  * Class CatalogueViewCart
  *
- * @since  Joomla 1.5
+ * @since  1.0
  */
 class CatalogueViewCart extends JViewLegacy
 {
+
+	public $item;
+
+	public $items;
+
+	public $form;
+
+	public $attributes;
+
+	protected $state;
+
+	protected $params;
 
 	/**
 	 * Execute and display a template script.
@@ -28,6 +40,24 @@ class CatalogueViewCart extends JViewLegacy
 	 */
 	public function display($tpl = null)
 	{
+		$app = JFactory::getApplication('site');
+
+		$this->item = $this->get('Item');
+		$this->items = $this->get('Items');
+		$this->state = $this->get('State');
+		$this->form = $this->get('Form');
+		$this->attributes = $this->get('Attributes');
+
+		$this->params = $this->state->get('params');
+		$active       = $app->getMenu()->getActive();
+
+		// Check to see which parameters should take priority
+		if ($active)
+		{
+			$this->params->merge($active->params);
+		}
+
 		parent::display($tpl);
 	}
+
 }

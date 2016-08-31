@@ -3,7 +3,7 @@
  * @package     Joomla.Administrator
  * @subpackage  com_catalogue
  *
- * @copyright   Copyright (C) 2012 - 2015 Saity74, LLC. All rights reserved.
+ * @copyright   Copyright (C) 2012 - 2016 Saity74, LLC. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
 defined('_JEXEC') or die;
@@ -15,6 +15,13 @@ defined('_JEXEC') or die;
  */
 class CatalogueTableAttr extends JTable
 {
+	/**
+	 * Ensure the params in json encoded in the bind method
+	 *
+	 * @var    array
+	 * @since  3.3
+	 */
+	protected $_jsonEncode = ['params'];
 
 	/**
 	 * Object constructor to set table and key fields.  In most cases this will
@@ -27,7 +34,11 @@ class CatalogueTableAttr extends JTable
 	 */
 	public function __construct(&$_db)
 	{
-		/** @noinspection PhpParamsInspection */
 		parent::__construct('#__catalogue_attr', 'id', $_db);
+
+		JLoader::import('attr', __DIR__ . '/observer');
+		CatalogueTableObserverAttr::createObserver($this);
+
+		$this->setColumnAlias('published', 'state');
 	}
 }

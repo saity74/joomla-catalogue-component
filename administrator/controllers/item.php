@@ -19,16 +19,12 @@ defined('_JEXEC') or die;
 class CatalogueControllerItem extends JControllerForm
 {
 	/**
-	 * Class constructor.
+	 * The URL view list variable.
 	 *
-	 * @param   array  $config  A named array of configuration variables.
-	 *
-	 * @since   1.6
+	 * @var    string
+	 * @since  12.2
 	 */
-	public function __construct($config = array())
-	{
-		parent::__construct($config);
-	}
+	protected $view_list = 'items';
 
 	/**
 	 * Method override to check if you can add a new record.
@@ -90,6 +86,7 @@ class CatalogueControllerItem extends JControllerForm
 		{
 			// Now test the owner is the user.
 			$ownerId = (int) isset($data['created_by']) ? $data['created_by'] : 0;
+
 			if (empty($ownerId) && $recordId)
 			{
 				// Need to do a lookup from the model.
@@ -117,7 +114,7 @@ class CatalogueControllerItem extends JControllerForm
 	/**
 	 * Method to run batch operations.
 	 *
-	 * @param   object  $model  The model.
+	 * @param   JModelLegacy  $model  The model.
 	 *
 	 * @return  boolean   True if successful, false otherwise and internal error is set.
 	 *
@@ -131,9 +128,137 @@ class CatalogueControllerItem extends JControllerForm
 		$model = $this->getModel('Item', '', array());
 
 		// Preset the redirect
-		$this->setRedirect(JRoute::_('index.php?option=com_catalogue&view=catalogue' . $this->getRedirectToListAppend(), false));
+		$this->setRedirect(JRoute::_('index.php?option=com_catalogue&view=items' . $this->getRedirectToListAppend(), false));
 
 		return parent::batch($model);
+	}
+
+	/**
+	 * Method to upload images
+	 *
+	 * @return  void
+	 *
+	 * @since   2.0
+	 */
+	public function imageUpload()
+	{
+		jimport('joomla.filesystem.folder');
+
+		$app = JFactory::getApplication();
+
+		$response = [];
+
+		if (   (! $folder_to_save = $this->input->get('item_id', false))
+			&& (! $folder_to_save = $app->getUserState('com_catalogue.edit.item.images_folder', false)) )
+		{
+			$folder_to_save = uniqid();
+			$app->setUserState('com_catalogue.edit.item.images_folder', $folder_to_save);
+		}
+
+		// Authorize the user
+		if ( ! JFactory::getUser()->authorise('core.create', 'com_catalogue') )
+		{
+			header('HTTP/1.1 403 Restricted access!');
+
+			$response['status'] = 403;
+			$response['msg'] = 'Restricted access';
+		}
+		else
+		{
+			$path = JPath::clean(JPATH_SITE . '/images/' . $folder_to_save);
+
+			// Create upload folder if not exist
+			if ( ! JFolder::exists($path) )
+			{
+				JFolder::create($path);
+			}
+
+			// Total length of post back data in bytes.
+			$contentLength = (int) $_SERVER['CONTENT_LENGTH'];
+
+			// Instantiate the media helper
+			$mediaHelper = new JHelperMedia;
+
+			// Maximum allowed size of post back data in MB.
+			$postMaxSize = $mediaHelper->toBytes(ini_get('post_max_size'));
+
+			// Maximum allowed size of script execution in MB.
+			$memoryLimit = $mediaHelper->toBytes(ini_get('memory_limit'));
+
+			// Check for the total size of post back data.
+			if ( ($postMaxSize > 0 && $contentLength > $postMaxSize)
+				|| ($memoryLimit != -1 && $contentLength > $memoryLimit) )
+			{
+				$response['status'] = 1;
+				$response['msg'] = 'File size exceed either \'upload_max_filesize\' or \'upload_maxsize\'';
+			}
+			else
+			{
+				$params = JComponentHelper::getParams('com_media');
+				$file = $this->input->files->get('file', '', 'array');
+
+				// Perform basic checks on file info before attempting anything
+				$uploadMaxSize = $params->get('upload_maxsize', 0) * 1024 * 1024;
+				$uploadMaxFileSize = $mediaHelper->toBytes(ini_get('upload_max_filesize'));
+
+				if ( ($uploadMaxSize > 0 && $file['size'] > $uploadMaxSize)
+					|| ($uploadMaxFileSize > 0 && $file['size'] > $uploadMaxFileSize) )
+				{
+					$response['status'] = 1;
+					$response['msg'] = 'File size exceed either \'upload_max_filesize\' or \'upload_maxsize\'';
+				}
+				elseif (!isset($file['name']))
+				{
+					$response['status'] = 2;
+					$response['msg'] = 'No filename!';
+				}
+				else
+				{
+					$file['name'] = JFile::makeSafe($file['name']);
+					$file['filepath'] = $path . '/' . $file['name'];
+
+					if ( JFile::exists($file['filepath']) )
+					{
+						$actual_name = JFile::stripExt($file['name']);
+						$original_name = $actual_name;
+						$extension = JFile::getExt($file['name']);
+
+						$i = 1;
+
+						while ( JFile::exists($path . '/' . $file['name']) && $i < 1000 )
+						{
+							$actual_name = (string) $original_name . '_' . (++$i);
+							$file['name'] = $actual_name . "." . $extension;
+						}
+
+						$file['filepath'] = $path . '/' . $file['name'];
+					}
+
+					// Set FTP credentials, if given
+					JClientHelper::setCredentialsFromRequest('ftp');
+
+					// Trigger the onContentBeforeSave event.
+					$object_file = new JObject($file);
+
+					if ( ! JFile::upload($object_file->tmp_name, $object_file->filepath) )
+					{
+						// Error in upload
+						$response['status'] = 3;
+						$response['msg'] = 'Can\'t upload file!';
+					}
+					else
+					{
+						$response['status'] = 0;
+						$response['msg'] = 'Success';
+						$response['filename'] = $file['name'];
+					}
+				}
+			}
+		}
+
+		echo json_encode($response);
+
+		$app->close();
 	}
 
 	/**
@@ -148,7 +273,6 @@ class CatalogueControllerItem extends JControllerForm
 	 */
 	protected function postSaveHook(JModelLegacy $model, $validData = array())
 	{
-
 		return;
 	}
 }

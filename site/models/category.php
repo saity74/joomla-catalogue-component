@@ -9,6 +9,8 @@
 
 defined('_JEXEC') or die;
 
+use Joomla\Registry\Registry;
+
 /**
  * CatalogueModelCategory
  *
@@ -53,38 +55,16 @@ class CatalogueModelCategory extends JModelList
 		{
 			$config['filter_fields'] = array(
 				'id', 'itm.id',
+				'title', 'itm.title',
+				'catid', 'itm.catid', 'category_title',
+				'state', 'itm.state',
 				'price', 'itm.price',
+				'hits', 'itm.hits',
 				'ordering', 'itm.ordering'
 			);
 		}
 
 		parent::__construct($config);
-	}
-
-	/**
-	 * Method get filters
-	 *
-	 * @return mixed
-	 */
-	public function getFilters()
-	{
-		$query = $this->_db->getQuery(true);
-		$query->select('a.id, a.dir_name, a.filter_type, a.filter_field, a.reset_attr_name, a.alias');
-		$query->from('#__catalogue_attrdir AS a');
-		$query->where('a.published = 1 AND a.state = 1 AND NOT filter_type = \'none\'');
-
-		$category_id = $this->getState('category.id', 0);
-		if ($category_id)
-		{
-			$query->join('LEFT', '#__catalogue_attrdir_category AS ac ON ac.attrdir_id = a.id');
-			$query->where('ac.category_id = ' . (int) $category_id);
-		}
-
-		$query->order('a.ordering ASC');
-		$this->_db->setQuery($query);
-		$result = $this->_db->loadObjectList();
-
-		return $result;
 	}
 
 	/**
@@ -100,35 +80,35 @@ class CatalogueModelCategory extends JModelList
 
 		if ($this->_items === null && $category = $this->getCategory())
 		{
-			$app = JFactory::getApplication('site');
-			$cid = $this->getState('category.id');
-			$resetFilter = (int) $app->input->get('resetFilter', 0);
+			$menu = JFactory::getApplication()->getMenu()->getActive();
+			$tags = @$menu->query['tags'] ?: [];
 
-			if ($resetFilter)
-			{
-				$this->setState('filter.sphinx_ids', array());
-				$app->setUserState('com_catalogue.category.' . $cid . '.filter.jform', '');
-			}
+			$model = JModelLegacy::getInstance('Items', 'CatalogueModel', ['ignore_request' => true]);
 
-			$model = JModelLegacy::getInstance('Items', 'CatalogueModel', array('ignore_request' => true));
-			$model->setState('params', JFactory::getApplication()->getParams());
+			$model->setState('params', JComponentHelper::getParams('com_catalogue'));
+
+			$model->setState('filter.tag', $tags);
 			$model->setState('filter.category_id', $category->id);
 			$model->setState('filter.published', $this->getState('filter.published'));
 			$model->setState('filter.access', $this->getState('filter.access'));
 			$model->setState('filter.language', $this->getState('filter.language'));
-			$model->setState('list.ordering', $this->getState('list.ordering'));
+			$model->setState('filter.price', $this->getState('filter.price'));
+
+			$model->setState('list.ordering', $this->_buildItemsOrderBy());
 			$model->setState('list.start', $this->getState('list.start'));
 			$model->setState('list.limit', $limit);
 			$model->setState('list.direction', $this->getState('list.direction'));
 			$model->setState('list.filter', $this->getState('list.filter'));
 
+			$itemId = JFactory::getApplication()->input->get('Itemid', 0);
+
+			// Save filters data to session
+			$filters = $this->getUserStateFromRequest($this->context . '.filter.' . $category->id . ':' . $itemId, 'filter', [], 'array');
+			$model->setState('filter.' . $category->id . ':' . $itemId, $filters);
+
 			// Filter.subcategories indicates whether to include articles from subcategories in the list or blog
 			$model->setState('filter.subcategories', $this->getState('filter.subcategories'));
 			$model->setState('filter.max_category_levels', $this->getState('filter.max_category_levels'));
-
-			// Sphinx search ids
-
-			$model->setState('filter.sphinx_ids', $this->getState('filter.sphinx_ids'));
 
 			if ($limit >= 0)
 			{
@@ -146,44 +126,6 @@ class CatalogueModelCategory extends JModelList
 
 			$this->_pagination = $model->getPagination();
 		}
-
-		// Load attr size..
-
-		$ids = array_map(
-			function ($el){
-				return $el->id;
-			},
-			$this->_items
-		);
-
-		$query = $this->_db->getQuery(true);
-		if (!empty($ids))
-		{
-			$query->select('p.*, a.attr_name')
-				->from('#__catalogue_attr_price as p')
-				->join('LEFT', '#__catalogue_attr as a ON a.published = 1 AND a.attrdir_id = 1 AND a.id = p.attr_id')
-				->where('p.item_id in (' . implode(', ', $ids) . ')')
-				->order('a.ordering');
-
-			$this->_db->setQuery($query);
-
-			$attrs = $this->_db->loadObjectList();
-
-			foreach ($attrs as $attr)
-			{
-				$item_attrs[$attr->item_id][] = $attr;
-			}
-
-			foreach ($this->_items as $item)
-			{
-				if (isset($item_attrs[$item->id]))
-				{
-					$item->sizes = $item_attrs[$item->id];
-				}
-			}
-		}
-
-		// ..load attr size
 
 		return $this->_items;
 	}
@@ -321,10 +263,6 @@ class CatalogueModelCategory extends JModelList
 				jimport('joomla.utilities.arrayhelper');
 				JArrayHelper::sortObjects($this->_children, 'title', ($params->get('orderby_pri') == 'alpha') ? 1 : -1);
 			}
-
-			jimport('joomla.utilities.arrayhelper');
-			$ids = JArrayHelper::getColumn($this->_children, 'id');
-
 		}
 
 		return $this->_children;
@@ -372,12 +310,9 @@ class CatalogueModelCategory extends JModelList
 
 		$this->setState('category.id', $pk);
 
-		$sphinx_ids = $app->getUserState('com_catalogue.category.' . $pk . '.filter.sphinx_ids', array());
-		$this->setState('filter.sphinx_ids', $sphinx_ids);
-
 		// Load the parameters. Merge Global and Menu Item params into new object
 		$params = $app->getParams();
-		$menuParams = new JRegistry;
+		$menuParams = new Registry;
 
 		if ($menu = $app->getMenu()->getActive())
 		{
@@ -396,7 +331,7 @@ class CatalogueModelCategory extends JModelList
 		$db = $this->getDbo();
 		$query = $db->getQuery(true);
 
-		if ((!$user->authorise('core.edit.state', 'com_content')) && (!$user->authorise('core.edit', 'com_content')))
+		if ((!$user->authorise('core.edit.state', 'com_catalogue')) && (!$user->authorise('core.edit', 'com_catalogue')))
 		{
 			// Limit to published for people who can't edit or edit.state.
 			$this->setState('filter.published', 1);
@@ -413,38 +348,45 @@ class CatalogueModelCategory extends JModelList
 			$this->setState('filter.published', array(0, 1, 2));
 		}
 
-		// Process show_noauth parameter
-		if (!$params->get('show_noauth'))
+		$itemId = JFactory::getApplication()->input->get('Itemid', 0);
+
+		if ($filters = $app->getUserStateFromRequest($this->context . '.filter.' . $pk . ':' . $itemId, 'filter', array(), 'array'))
 		{
-			$this->setState('filter.access', true);
-		}
-		else
-		{
-			$this->setState('filter.access', false);
+			foreach ($filters as $name => $value)
+			{
+				// Exclude if blacklisted
+				if (in_array($name, $this->filter_fields) && !empty($value) && !empty($name))
+				{
+					$this->setState('filter.' . $pk . ':' . $itemId . '.' . $name, $value);
+				}
+			}
 		}
 
-		// Optional filter text
-		$this->setState('list.filter', $app->input->getString('filter-search'));
+		$filter_sku = $app->getUserStateFromRequest($this->context . '.filter.' . $pk . ':' . $itemId . '.sku', 'filter.sku', '', 'string');
+		$this->setState('filter.sku', $filter_sku);
 
 		// Filter.order
-		$itemid = $app->input->get('id', 0, 'int') . ':' . $app->input->get('Itemid', 0, 'int');
-		$orderCol = $app->getUserStateFromRequest('com_catalogue.category.list.' . $itemid . '.filter_order', 'filter_order', 'itm.price', 'string');
+		$orderCol = $app->getUserStateFromRequest($this->context . '.list.' . $pk . '.filter_order', 'filter_order', 'itm.price', 'string');
+
 		if (!in_array($orderCol, $this->filter_fields))
 		{
 			$orderCol = 'itm.price';
 		}
+
 		$this->setState('list.ordering', $orderCol);
 
-		$listOrder = $app->getUserStateFromRequest('com_catalogue.category.list.' . $itemid . '.filter_order_Dir', 'filter_order_Dir', 'ASC', 'cmd');
+		$listOrder = $app->getUserStateFromRequest($this->context . '.list.' . $pk . '.filter_order_Dir', 'filter_order_Dir', 'ASC', 'cmd');
+
 		if (!in_array(strtoupper($listOrder), array('ASC', 'DESC', '')))
 		{
 			$listOrder = 'ASC';
 		}
+
 		$this->setState('list.direction', $listOrder);
 
 		$this->setState('list.start', $app->input->get('limitstart', 0, 'uint'));
 
-		$limit = $app->getUserStateFromRequest('com_catalogue.category.list.' . $itemid . '.limit', 'limit', 9, 'uint');
+		$limit = $app->getUserStateFromRequest($this->context . '.list.' . $pk . '.limit', 'limit', 12, 'uint');
 
 		$this->setState('list.limit', $limit);
 
@@ -457,53 +399,162 @@ class CatalogueModelCategory extends JModelList
 			$this->setState('filter.subcategories', true);
 		}
 
-		$jform = $this->getUserStateFromRequest('com_catalogue.category.' . $pk . '.filter.jform', 'jform', '', 'post');
-		$this->setState('filter.jform', $jform);
-
-		$this->setState('filter.language', JLanguageMultilang::isEnabled());
+		//$filter_sku = $app->getUserStateFromRequest('filter.sku', 'sku', '', 'text');
 
 		$this->setState('layout', $app->input->getString('layout'));
 	}
 
+
 	/**
-	 * Gets the value of a user state variable and sets it in the session
+	 * Build the orderby for the query
 	 *
-	 * This is the same as the method in JApplication except that this also can optionally
-	 * force you back to the first page when a filter has changed
+	 * @return  string	$orderby part of query
 	 *
-	 * @param   string   $key        The key of the user state variable.
-	 * @param   string   $request    The name of the variable passed in a request.
-	 * @param   string   $default    The default value for the variable if not found. Optional.
-	 * @param   string   $type       Filter for the variable, for valid values see {@link JFilterInput::clean()}. Optional.
-	 * @param   boolean  $resetPage  If true, the limitstart in request is set to zero
-	 *
-	 * @return  The request user state.
-	 *
-	 * @since   12.2
+	 * @since   1.5
 	 */
-	public function getUserStateFromRequest($key, $request, $default = null, $type = 'none', $resetPage = true)
+	protected function _buildItemsOrderBy()
 	{
-		$app = JFactory::getApplication();
-		$input = $app->input;
-		$old_state = $app->getUserState($key);
-		$cur_state = (!is_null($old_state)) ? $old_state : $default;
-		$new_state = $input->get($request, null, $type);
+		$app       = JFactory::getApplication('site');
+		$db        = $this->getDbo();
+		$params    = $this->state->params;
+		//$cid    = $app->input->get('id', 0, 'int') . ':' . $app->input->get('cid', 0, 'int');
+		$itemid = $app->input->get('cid', 0, 'int') . ':' . $app->input->get('Itemid', 0, 'int');
+		$orderCol  = $app->getUserStateFromRequest('com_catalogue.category.list.' . $itemid . '.filter_order', 'filter_order', '', 'string');
+		$orderDirn = $app->getUserStateFromRequest('com_catalogue.category.list.' . $itemid . '.filter_order_Dir', 'filter_order_Dir', '', 'cmd');
+		$orderby   = ' ';
 
-		if (($cur_state != $new_state) && ($resetPage))
+		if (!in_array($orderCol, $this->filter_fields))
 		{
-			$input->set('limitstart', 0);
+			$orderCol = null;
 		}
 
-		// Save the new value only if it is set in this request.
-		if ($new_state !== null)
+		if (!in_array(strtoupper($orderDirn), array('ASC', 'DESC', '')))
 		{
-			$app->setUserState($key, $new_state);
-		}
-		else
-		{
-			$new_state = $cur_state;
+			$orderDirn = 'ASC';
 		}
 
-		return $new_state;
+		if ($orderCol && $orderDirn)
+		{
+			$orderby .= $db->escape($orderCol) . ' ' . $db->escape($orderDirn) . ', ';
+		}
+
+		$itemOrderby   = $params->get('orderby_sec', '');
+		$categoryOrderby  = $params->def('orderby_pri', '');
+		$secondary        = CatalogueHelperQuery::orderbySecondary($itemOrderby) . ', ';
+		$primary          = CatalogueHelperQuery::orderbyPrimary($categoryOrderby);
+
+		$orderby .= $primary . ' ' . $secondary . ' itm.ordering ';
+
+		return $orderby;
+	}
+
+	protected function _getFilterFields()
+	{
+		$category = $this->getCategory();
+
+		$db = $this->_db;
+
+		$db->setQuery('SET SESSION group_concat_max_len = 1000000')->execute();
+
+		$query = $db->getQuery(true);
+
+		$query->select('`agcmap`.`group_id`, `ag`.`title`, `ag`.`params`, `ag`.`alias` ')
+			->from($db->qn('#__catalogue_attr_group_category', 'agcmap'))
+			->where($db->qn('cat_id') . ' = ' . $db->q( (int) $category->id))
+			->group('group_id')
+			->join('LEFT',  $db->qn('#__catalogue_attr_group', 'ag')
+			. ' ON ' . $db->qn('ag.id') . ' = ' . $db->qn('agcmap.group_id'))
+			->select('GROUP_CONCAT(`a`.`id`, \'::\' , `a`.`title` SEPARATOR \'\\n\') as `values`')
+			->join('LEFT',  $db->qn('#__catalogue_attr', 'a')
+			. ' ON ' . $db->qn('a.group_id') . ' = ' . $db->qn('ag.id'))
+			->where('`a`.`state` = 1 AND `ag`.`state` = 1')
+			->order($db->qn('ag.ordering') . 'ASC');
+
+		$db->setQuery($query);
+
+		$fields = $db->loadObjectList();
+
+		$filter_fields = JArrayHelper::getColumn($fields, 'alias');
+		$this->filter_fields += array_values($filter_fields);
+
+		return $fields;
+	}
+
+	public function getFilterForm($data = array(), $loadData = true)
+	{
+		$form = parent::getFilterForm($data, true);
+
+		$filter_fields = $this->_getFilterFields();
+
+		if ($form)
+		{
+			$formElement = $form->getXml();
+			$fields = $formElement->addChild('fields');
+			$fields->addAttribute('name', 'filter');
+
+			foreach ($filter_fields as &$filter_field)
+			{
+				$params = new Registry($filter_field->params);
+
+				if ($filter_type = $params->get('filter_type'))
+				{
+					$field = $fields->addChild('field');
+					$field->addAttribute('name', $filter_field->alias);
+
+					if ($filter_class = $params->get('filter_class'))
+					{
+						$field->addAttribute('class', $filter_class);
+					}
+
+					$filter_label = $params->get('filter_title', $filter_field->title);
+
+					if ($filter_type === 'multiselect')
+					{
+						$filter_type = 'list';
+						$field->addAttribute('multiple', true);
+					}
+
+					$field->addAttribute('layout', 'catalogue.filters.' . $filter_type);
+					$field->addAttribute('type', $filter_type);
+					$field->addAttribute('label', $filter_label);
+
+					$options = explode("\n", $filter_field->values);
+
+					if ($options && is_array($options) && !empty($options))
+					{
+						if ($filter_default = $params->get('filter_default'))
+						{
+							array_unshift($options, '::' . $filter_default);
+						}
+
+						foreach ($options as $option)
+						{
+							$key = null;
+							$val = null;
+							@list($key, $val) = explode('::', $option);
+							$opt = $field->addChild('option', $val);
+							$opt->addAttribute('value', $key);
+						}
+					}
+				}
+			}
+
+			unset($filter_field);
+		}
+
+		//$data = $this->loadFormData();
+
+		$cid = $this->getCategory()->id;
+		$itemId = JFactory::getApplication()->input->get('Itemid', 0);
+
+		$key = $cid . ':' . $itemId;
+		$data = new stdClass();
+		$data->filter = JFactory::getApplication()->getUserState($this->context . '.filter.' . $key, new stdClass);
+
+		$this->preprocessForm($form, $data);
+
+		$form->bind($data);
+
+		return $form;
 	}
 }

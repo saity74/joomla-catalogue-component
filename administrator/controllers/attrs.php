@@ -3,64 +3,35 @@
  * @package     Joomla.Administrator
  * @subpackage  com_catalogue
  *
- * @copyright   Copyright (C) 2012 - 2015 Saity74, LLC. All rights reserved.
+ * @copyright   Copyright (C) 2005 - 2016 Saity74, LLC. All rights reserved.
  * @license     GNU General Public License version 2 or later; see LICENSE.txt
  */
+
 defined('_JEXEC') or die;
 
 /**
- * CatalogueControllerAttrs
+ * Attrs list controller class.
  *
- * Controller (controllers are where you put all the actual code) Provides basic
- * functionality, such as rendering views (aka displaying templates).
- *
- * @since  12.2
+ * @since  1.6
  */
 class CatalogueControllerAttrs extends JControllerAdmin
 {
 
 	/**
-	 * Constructor.
-	 *
-	 * @param   array  $config  An optional associative array of configuration settings.
-	 *
-	 * @see     JControllerAdmin
-	 * @since   12.2
-	 * @throws  Exception
-	 */
-	public function __construct($config = array())
-	{
-		parent::__construct($config);
-	}
-
-	/**
-	 * Method to get a model object, loading it if required.
+	 * Proxy for getModel.
 	 *
 	 * @param   string  $name    The model name. Optional.
 	 * @param   string  $prefix  The class prefix. Optional.
-	 * @param   array   $config  Configuration array for model. Optional.
+	 * @param   array   $config  The array of possible config values. Optional.
 	 *
-	 * @return  object  The model.
+	 * @return  JModel
 	 *
-	 * @since   12.2
+	 * @since   1.6
 	 */
-	public function getModel($name = 'Attr', $prefix = 'CatalogueModel', $config = array('ignore_request' => true))
+	public function getModel($name = 'Attr', $prefix = 'CatalogueModel', $config = array())
 	{
 		$model = parent::getModel($name, $prefix, $config);
 
 		return $model;
-	}
-
-	/**
-	 * Method to redirect.
-	 *
-	 * @return  void
-	 *
-	 * @since   12.2
-	 */
-	public function edit()
-	{
-		$id = $this->input->getInt('id', 0);
-		$this->setRedirect('index.php?option=com_catalogue&view=attr&layout=edit&id=' . $id);
 	}
 }
